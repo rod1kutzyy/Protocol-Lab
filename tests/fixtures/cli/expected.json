@@ -1,0 +1,32 @@
+{
+  "framing/length-big.pcap": {
+    "message_counts": {
+      "passed": 1,
+      "failed": 2,
+      "unknown": 0,
+      "ambiguous": 0,
+      "not_applicable": 0
+    },
+    "stream_bytes": 15
+  },
+  "interpretation/arrays-new-parameters.pcap": {
+    "message_counts": {
+      "passed": 0,
+      "failed": 1,
+      "unknown": 0,
+      "ambiguous": 0,
+      "not_applicable": 0
+    },
+    "stream_bytes": 6
+  },
+  "framing/length-incomplete.pcap": {
+    "message_counts": {
+      "passed": 1,
+      "failed": 0,
+      "unknown": 0,
+      "ambiguous": 0,
+      "not_applicable": 0
+    },
+    "stream_bytes": 8
+  }
+}

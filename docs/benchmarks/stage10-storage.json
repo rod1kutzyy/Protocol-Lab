@@ -1,0 +1,100 @@
+{
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "architecture": "arm64",
+  "scope": "PostgreSQL/application publication and portability; separate from core Linux profile",
+  "measurements": [
+    {
+      "operation": "import_publication",
+      "seconds": 8.899,
+      "peak_rss_bytes": 82706432,
+      "packets": 250000
+    },
+    {
+      "operation": "reconstruction_publication",
+      "seconds": 7.362,
+      "peak_rss_bytes": 644628480,
+      "connections": 1000
+    },
+    {
+      "operation": "validation",
+      "seconds": 16.949,
+      "peak_rss_bytes": 128434176,
+      "counts": {
+        "passed": 100000,
+        "failed": 0,
+        "unknown": 0,
+        "ambiguous": 0,
+        "not_applicable": 1000
+      },
+      "message_counts": {
+        "passed": 100000,
+        "failed": 0,
+        "unknown": 0,
+        "ambiguous": 0,
+        "not_applicable": 0
+      },
+      "engine_version": "validation-v1"
+    },
+    {
+      "operation": "validation_publication",
+      "seconds": 6.99,
+      "peak_rss_bytes": 129368064,
+      "messages": 100000
+    },
+    {
+      "operation": "reads",
+      "seconds": 0.654,
+      "peak_rss_bytes": 87605248,
+      "samples": 20,
+      "min_seconds": 0.022235041004023515,
+      "max_seconds": 0.10969154100166634,
+      "p95_seconds": 0.05681320799340028
+    },
+    {
+      "operation": "snapshot",
+      "seconds": 9.148,
+      "peak_rss_bytes": 118915072,
+      "table_counts": {
+        "projects": 1,
+        "action_logs": 0,
+        "captures": 1,
+        "corpus_versions": 1,
+        "hypothesis_versions": 0,
+        "interpretation_versions": 1,
+        "observations": 0,
+        "actions": 0,
+        "packets": 250000,
+        "reconstructions": 1,
+        "validation_runs": 1,
+        "action_links": 0,
+        "tcp_sessions": 1000,
+        "tcp_streams": 2000,
+        "framing_runs": 0,
+        "tcp_spans": 60000,
+        "validation_results": 101000,
+        "framing_pieces": 0,
+        "interpretation_runs": 0,
+        "interpretation_results": 0
+      },
+      "expanded_bytes": 654604252
+    },
+    {
+      "operation": "zip",
+      "seconds": 3.956,
+      "peak_rss_bytes": 81182720,
+      "archive_bytes": 62064969
+    },
+    {
+      "operation": "verify",
+      "seconds": 0.244,
+      "peak_rss_bytes": 77348864
+    },
+    {
+      "operation": "restore",
+      "seconds": 16.592,
+      "peak_rss_bytes": 91226112,
+      "messages": 100000,
+      "original_root_unavailable": true
+    }
+  ]
+}

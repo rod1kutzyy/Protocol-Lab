@@ -1,0 +1,629 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:interpretation-1",
+  "$defs": {
+    "ArrayField": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "maximum": 16777216,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/Linear"
+            }
+          ],
+          "title": "Count"
+        },
+        "fields": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "array": "#/$defs/ArrayField",
+                "bytes": "#/$defs/BytesField",
+                "int": "#/$defs/IntField",
+                "switch": "#/$defs/SwitchField"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/IntField"
+              },
+              {
+                "$ref": "#/$defs/BytesField"
+              },
+              {
+                "$ref": "#/$defs/ArrayField"
+              },
+              {
+                "$ref": "#/$defs/SwitchField"
+              }
+            ]
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "count",
+        "fields"
+      ],
+      "title": "ArrayField",
+      "type": "object"
+    },
+    "ByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "ByteRange",
+      "type": "object"
+    },
+    "BytesField": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "bytes",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "length": {
+          "anyOf": [
+            {
+              "maximum": 16777216,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/Linear"
+            },
+            {
+              "const": "remaining",
+              "type": "string"
+            }
+          ],
+          "title": "Length"
+        },
+        "constant_hex": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "pattern": "^(?:[a-fA-F0-9]{2})*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Constant Hex"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "length"
+      ],
+      "title": "BytesField",
+      "type": "object"
+    },
+    "FixedRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "fixed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "size"
+      ],
+      "title": "FixedRule",
+      "type": "object"
+    },
+    "FramingSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "framing-1",
+          "default": "framing-1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "start": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "rule": {
+          "discriminator": {
+            "mapping": {
+              "fixed": "#/$defs/FixedRule",
+              "length": "#/$defs/LengthRule",
+              "manual": "#/$defs/ManualRule",
+              "markers": "#/$defs/MarkerRule"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ManualRule"
+            },
+            {
+              "$ref": "#/$defs/FixedRule"
+            },
+            {
+              "$ref": "#/$defs/LengthRule"
+            },
+            {
+              "$ref": "#/$defs/MarkerRule"
+            }
+          ],
+          "title": "Rule"
+        },
+        "max_message_bytes": {
+          "default": 1048576,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Max Message Bytes",
+          "type": "integer"
+        },
+        "max_pieces": {
+          "default": 200000,
+          "maximum": 200000,
+          "minimum": 1,
+          "title": "Max Pieces",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rule"
+      ],
+      "title": "FramingSpec",
+      "type": "object"
+    },
+    "IntField": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "int",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "width": {
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "signed": {
+          "title": "Signed",
+          "type": "boolean"
+        },
+        "endian": {
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "constant": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Constant"
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "width",
+        "signed",
+        "endian"
+      ],
+      "title": "IntField",
+      "type": "object"
+    },
+    "LengthCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "length",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Field",
+          "type": "string"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "maximum": 16777216,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/Linear"
+            }
+          ],
+          "title": "Expected"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "expected"
+      ],
+      "title": "LengthCheck",
+      "type": "object"
+    },
+    "LengthRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "length",
+          "title": "Kind",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 65536,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "width": {
+          "default": 2,
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "endian": {
+          "default": "big",
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "multiplier": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier",
+          "type": "integer"
+        },
+        "adjustment": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "LengthRule",
+      "type": "object"
+    },
+    "Linear": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Field",
+          "type": "string"
+        },
+        "multiplier": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier",
+          "type": "integer"
+        },
+        "add": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Add",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "Linear",
+      "type": "object"
+    },
+    "ManualRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "manual",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ranges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 10000,
+          "title": "Ranges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ManualRule",
+      "type": "object"
+    },
+    "MarkerRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "markers",
+          "title": "Kind",
+          "type": "string"
+        },
+        "start_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "Start Hex",
+          "type": "string"
+        },
+        "end_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "End Hex",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "start_hex",
+        "end_hex"
+      ],
+      "title": "MarkerRule",
+      "type": "object"
+    },
+    "SwitchField": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "switch",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "selector": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Selector",
+          "type": "string"
+        },
+        "cases": {
+          "additionalProperties": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "array": "#/$defs/ArrayField",
+                  "bytes": "#/$defs/BytesField",
+                  "int": "#/$defs/IntField",
+                  "switch": "#/$defs/SwitchField"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/IntField"
+                },
+                {
+                  "$ref": "#/$defs/BytesField"
+                },
+                {
+                  "$ref": "#/$defs/ArrayField"
+                },
+                {
+                  "$ref": "#/$defs/SwitchField"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "maxProperties": 32,
+          "minProperties": 1,
+          "title": "Cases",
+          "type": "object"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "selector",
+        "cases"
+      ],
+      "title": "SwitchField",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "interpretation-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "framing": {
+      "$ref": "#/$defs/FramingSpec"
+    },
+    "fields": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "array": "#/$defs/ArrayField",
+            "bytes": "#/$defs/BytesField",
+            "int": "#/$defs/IntField",
+            "switch": "#/$defs/SwitchField"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/IntField"
+          },
+          {
+            "$ref": "#/$defs/BytesField"
+          },
+          {
+            "$ref": "#/$defs/ArrayField"
+          },
+          {
+            "$ref": "#/$defs/SwitchField"
+          }
+        ]
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Fields",
+      "type": "array"
+    },
+    "checks": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LengthCheck"
+      },
+      "maxItems": 128,
+      "title": "Checks",
+      "type": "array"
+    },
+    "max_array_items": {
+      "default": 1024,
+      "maximum": 4096,
+      "minimum": 1,
+      "title": "Max Array Items",
+      "type": "integer"
+    },
+    "max_decoded_fields": {
+      "default": 4096,
+      "maximum": 16384,
+      "minimum": 1,
+      "title": "Max Decoded Fields",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "framing",
+    "fields"
+  ],
+  "title": "ProtocolModel",
+  "type": "object"
+}

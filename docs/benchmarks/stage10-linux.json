@@ -1,0 +1,137 @@
+{
+  "profile": "control",
+  "platform": "Linux-7.0.14-linuxkit-x86_64-with-glibc2.41",
+  "architecture": "x86_64",
+  "python": "3.12.15",
+  "logical_cpus": 10,
+  "cpu_max": "400000 100000",
+  "memory_max": "8589934592",
+  "workload": {
+    "connections": 1000,
+    "packets": 250000,
+    "messages": 100000,
+    "capture_bytes": 100856024,
+    "application_bytes": 83356000,
+    "max_message_bytes": 65536,
+    "sha256": "a0ffab96634b7596d956a54cdb4dc0d5d5bff4659d210c5e401d47275d84aa4a"
+  },
+  "measurements": [
+    {
+      "operation": "index",
+      "seconds": 8.765,
+      "peak_rss_bytes": 54235136,
+      "packets": 250000,
+      "artifact_bytes": 173035521
+    },
+    {
+      "operation": "reconstruct",
+      "seconds": 4.881,
+      "peak_rss_bytes": 1267802112,
+      "sessions": 1000,
+      "artifact_bytes": 35974418,
+      "sha256": "c13b76041d6995db69c2cc93cb18d474314055c4c0e8dea803038472d074a34c"
+    },
+    {
+      "operation": "frame",
+      "seconds": 2.538,
+      "peak_rss_bytes": 594325504,
+      "messages": 100000,
+      "application_bytes": 83356000,
+      "max_message_bytes": 65536
+    },
+    {
+      "operation": "parse",
+      "seconds": 5.836,
+      "peak_rss_bytes": 594321408,
+      "messages": 100000,
+      "application_bytes": 83356000,
+      "max_message_bytes": 65536
+    },
+    {
+      "operation": "apply",
+      "seconds": 21.592,
+      "peak_rss_bytes": 1307856896,
+      "coverage": {
+        "counts": {
+          "passed": 100000,
+          "failed": 0,
+          "unknown": 0,
+          "ambiguous": 0,
+          "not_applicable": 1000
+        },
+        "message_counts": {
+          "passed": 100000,
+          "failed": 0,
+          "unknown": 0,
+          "ambiguous": 0,
+          "not_applicable": 0
+        },
+        "byte_counts": {
+          "passed": 83356000,
+          "failed": 0,
+          "unknown": 0,
+          "ambiguous": 0,
+          "not_applicable": 0
+        },
+        "stream_bytes": 83356000,
+        "selected_stream_bytes": 83356000,
+        "excluded_stream_bytes": 0,
+        "unframed_bytes": 0,
+        "undecoded_bytes": 0,
+        "decoded_leaf_bytes": 83356000,
+        "captures": 1,
+        "captures_without_reconstruction": 0,
+        "packets": 250000,
+        "noneligible_packets": 0,
+        "unavailable_source_bytes": 0,
+        "ambiguous_source_bytes": 0
+      },
+      "semantic_sha256": "701cf18001fef398c20c96a7ae93cdf9618785dcfdfced320479855ed8e8171a",
+      "output_bytes": 145632501
+    },
+    {
+      "operation": "repeat",
+      "seconds": 22.099,
+      "peak_rss_bytes": 1307648000,
+      "coverage": {
+        "counts": {
+          "passed": 100000,
+          "failed": 0,
+          "unknown": 0,
+          "ambiguous": 0,
+          "not_applicable": 1000
+        },
+        "message_counts": {
+          "passed": 100000,
+          "failed": 0,
+          "unknown": 0,
+          "ambiguous": 0,
+          "not_applicable": 0
+        },
+        "byte_counts": {
+          "passed": 83356000,
+          "failed": 0,
+          "unknown": 0,
+          "ambiguous": 0,
+          "not_applicable": 0
+        },
+        "stream_bytes": 83356000,
+        "selected_stream_bytes": 83356000,
+        "excluded_stream_bytes": 0,
+        "unframed_bytes": 0,
+        "undecoded_bytes": 0,
+        "decoded_leaf_bytes": 83356000,
+        "captures": 1,
+        "captures_without_reconstruction": 0,
+        "packets": 250000,
+        "noneligible_packets": 0,
+        "unavailable_source_bytes": 0,
+        "ambiguous_source_bytes": 0
+      },
+      "semantic_sha256": "701cf18001fef398c20c96a7ae93cdf9618785dcfdfced320479855ed8e8171a",
+      "output_bytes": 145632501
+    }
+  ],
+  "measurement_scope": "core engines + artifact IO; no DB/HTTP",
+  "reproducible": true
+}

@@ -1,0 +1,175 @@
+# Исследование: {{ project.name|md }}
+
+Проект: `{{ project.id }}`. Полный снимок исследования находится в переносимом архиве.
+Диапазоны байтов имеют вид [start, end), end не включён.
+
+## Источники и условия воспроизводимости
+{% for capture in captures %}
+- Capture `{{ capture.id }}`: {{ capture.format }}, {{ capture.size_bytes }} байт,
+  {{ capture.packet_count }} пакетов. SHA-256 `{{ capture.sha256 }}`.
+  Файл: `{{ capture.relative_path }}`. Checksum policy: {{ capture.checksum_policy }}.
+  Диагностика: {{ capture.diagnostics|md }}.
+{% endfor %}
+
+## Наблюдения — основания выводов
+{% for item in observations %}
+### Наблюдение {{ item.id }}
+
+{{ item.text|md }}
+{% for anchor in item.anchors %}
+- Stream `{{ anchor.stream_id }}`, reconstruction {{ anchor.reconstruction_version|md }}:
+  [{{ anchor.byte_range.start }}, {{ anchor.byte_range.end }}).
+{% endfor %}
+{% for source in item.sources %}
+- Capture `{{ source.capture_id }}`, packet `{{ source.packet_id }}`:
+  payload [{{ source.packet_payload_range.start }}, {{ source.packet_payload_range.end }}).
+{% endfor %}
+{% else %}
+Наблюдения не сохранены.
+{% endfor %}
+
+## Семантические гипотезы
+
+Успешное исполнение правил не доказывает назначение полей.
+{% for item in hypotheses %}
+### {{ item.statement|md }}
+
+Версия `{{ item.id }}`; родитель: {{ item.parent_id|md }}.
+Основания: {{ item.rationale|md }}
+
+Область: {{ item.scope|md }}
+
+Наблюдения:
+{% for id in item.observation_ids %}
+- `{{ id }}`
+{% endfor %}
+
+Открытые вопросы:
+{% for question in item.unknowns %}
+- {{ question|md }}
+{% else %}
+- Не записаны.
+{% endfor %}
+
+Противоречия:
+{% for contradiction in item.contradictions %}
+- {{ contradiction|md }}
+{% else %}
+- Не записаны; это не означает доказанность гипотезы.
+{% endfor %}
+{% else %}
+Гипотезы не сохранены; семантические выводы не заявлены.
+{% endfor %}
+
+## Машинные интерпретации
+{% for model in models %}
+### Версия {{ model.id }}
+
+Model `{{ model.model_id }}`, SHA-256 `{{ model.content_sha256 }}`, schema {{ model.schema_version }}.
+
+```json
+{{ model.document_json|fromjson|pretty }}
+```
+{% else %}
+Модель не сохранена.
+{% endfor %}
+
+## Область проверок
+{% for corpus in corpora %}
+### {{ corpus.name|md }} — версия {{ corpus.id }}
+
+```json
+{{ corpus.spec|pretty }}
+```
+{% else %}
+Корпус не сохранён.
+{% endfor %}
+
+## Исполнение правил, примеры и контрпримеры
+{% for run in runs %}
+### Запуск {{ run.snapshot.id }}
+
+Время: {{ run.snapshot.created_at }}. Corpus `{{ run.snapshot.corpus.id }}`;
+interpretation `{{ run.snapshot.interpretation_version_id }}`,
+model SHA-256 `{{ run.snapshot.model_sha256 }}`.
+Движки: {{ run.snapshot.engine_version }}, {{ run.snapshot.framing_engine_version }},
+{{ run.snapshot.interpretation_engine_version }}.
+
+Framing settings:
+
+```json
+{{ run.snapshot.framing|pretty }}
+```
+{% for source in run.snapshot.sources %}
+- Capture `{{ source.id }}`, SHA-256 `{{ source.sha256 }}`;
+  reconstruction {{ source.reconstruction_engine_version|md }},
+  policy {{ source.checksum_policy }}. Reconstruction settings: {{ source.reconstruction_settings|md }}.
+{% endfor %}
+
+| Статус | Все результаты | Сообщения | Байты |
+| --- | ---: | ---: | ---: |
+{% for status in ['passed', 'failed', 'unknown', 'ambiguous', 'not_applicable'] -%}
+| {{ status }} | {{ run.coverage.counts[status] }} | {{ run.coverage.message_counts[status] }} | {{ run.coverage.byte_counts[status] }} |
+{% endfor %}
+
+В выбранных потоках: {{ run.coverage.selected_stream_bytes }} из {{ run.coverage.stream_bytes }} байт;
+исключено фильтрами: {{ run.coverage.excluded_stream_bytes }}.
+Unframed: {{ run.coverage.unframed_bytes }}; undecoded: {{ run.coverage.undecoded_bytes }};
+decoded leaf bytes: {{ run.coverage.decoded_leaf_bytes }}.
+Недоступные байты: {{ run.coverage.unavailable_source_bytes }};
+конфликтующие: {{ run.coverage.ambiguous_source_bytes }}.
+Записей без восстановления: {{ run.coverage.captures_without_reconstruction }};
+непригодных для восстановления пакетов: {{ run.coverage.noneligible_packets }}.
+Не восстановлено включённых направлений: {{ run.coverage.unreconstructed_directions|default(0) }};
+ошибочных направлений вне фильтров: {{ run.coverage.excluded_unreconstructed_directions|default(0) }}.
+Размеры невосстановленных направлений неизвестны и не входят в сумму байтов.
+
+Результаты относятся к сохранённым версиям на время запуска; новые правила требуют повторной проверки.
+{% for status in ['passed', 'failed', 'unknown', 'ambiguous', 'not_applicable'] %}
+#### {{ status }} — {{ example_counts[(run.snapshot.id, status)] }} результатов
+
+Показаны первые пять примеров каждого статуса; все результаты доступны в JSON и архиве.
+{% for item in examples[(run.snapshot.id, status)] %}
+Capture `{{ item.capture_id }}`, stream {{ item.stream_id|md }};
+{% if item.anchor %}
+диапазон [{{ item.anchor.byte_range.start }}, {{ item.anchor.byte_range.end }}),
+reconstruction {{ item.anchor.reconstruction_version|md }}.
+{% endif %}
+{{ item.kind }}: {{ item.diagnostic|md }}.
+{% if item.kind == 'reconstruction_diagnostic' %}
+Соединение `{{ item.session_id }}`, направление {{ item.direction }}; размер потока неизвестен.
+{% endif %}
+{% for field in item.fields %}
+- Поле {{ field.path|md }}: {{ field.value|md }}; {{ field.kind }};
+  {{ field.status|default('decoded')|md }}.{% if field.preview_truncated %} Показан ограниченный preview; исходные bytes доступны по anchor.{% endif %}
+  {% if field.anchor %}Bytes [{{ field.anchor.byte_range.start }}, {{ field.anchor.byte_range.end }}).{% endif %}
+{% endfor %}
+{% for unknown in item.unknown_ranges %}
+- Неизвестные bytes [{{ unknown.anchor.byte_range.start }}, {{ unknown.anchor.byte_range.end }}):
+  {{ unknown.reason|md }}.
+{% endfor %}
+{% for packet in item.packets %}
+- Packet #{{ packet.packet_index }} (индекс с нуля), `{{ packet.packet_id }}`;
+  File offset {{ packet.file_offset }}, payload [{{ packet.payload_start }}, {{ packet.payload_start + packet.length }}).
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% else %}
+Проверки не выполнялись; выводы об исполнении правил отсутствуют.
+{% endfor %}
+
+## Ограничения и повторное применение
+
+Исследуется незашифрованный TCP/IPv4 из сохранённых PCAP/PCAPNG. Пропуски,
+усечения и конфликтующие перекрытия сохраняются как неопределённые данные.
+Unframed и uncovered диапазоны учитываются в покрытии. Фильтры ограничивают область вывода.
+Сопоставление с действиями по времени не является доказательством семантики.
+
+Экспортируйте выбранную интерпретацию в JSON и примените к новой записи:
+
+```sh
+protocol-lab apply --model model.json --capture new.pcap --output validation.json
+```
+
+CLI использует общие движки восстановления, framing и Construct.
+Для восстановления архива требуется локальный PostgreSQL с миграциями 0006 и установленное приложение.

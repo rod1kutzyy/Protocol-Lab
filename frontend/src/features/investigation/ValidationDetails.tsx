@@ -1,0 +1,18 @@
+import { useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import type { components } from '@/shared/api-types'
+import { Button } from '@/shared/ui/button'
+export type ValidationItem = components['schemas']['ValidationItem']
+export const validationStatuses = { passed: 'Passed · правила выполнены', failed: 'Failed · нарушено правило', unknown: 'Unknown · неизвестно', ambiguous: 'Ambiguous · неоднозначно', not_applicable: 'Not applicable · не применялось' }
+export function ValidationDetails({ item, runId, navigate }: { item: ValidationItem; runId: string; navigate: (item: ValidationItem, anchor?: components['schemas']['StreamRange']) => void }) {
+  const fieldScroll = useRef<HTMLDivElement>(null), unknownScroll = useRef<HTMLDivElement>(null)
+  const fields = useVirtualizer({ count: item.fields?.length ?? 0, getScrollElement: () => fieldScroll.current, estimateSize: () => 64, overscan: 4 })
+  const unknown = useVirtualizer({ count: item.unknown_ranges?.length ?? 0, getScrollElement: () => unknownScroll.current, estimateSize: () => 64, overscan: 4 })
+  return <section className="stack" aria-label="Контрпример и исходные байты"><h4>Результат {item.id.slice(0, 8)} · запуск {runId.slice(0, 8)}</h4><p className="notice">{validationStatuses[item.status]} · {item.diagnostic}<br />Запись {item.capture_id.slice(0, 8)} · {item.kind}. Значения — результат исполнения выбранной версии, а не доказанный смысл полей.</p>
+    {item.kind === 'reconstruction_diagnostic' && <p className="notice">Направление {item.direction === 'a_to_b' ? 'A → B' : 'B → A'} не восстановлено. Размер потока и диапазон байтов неизвестны; причина сохранена в диагностике соединения.</p>}
+    <Button size="sm" variant="outline" onClick={() => navigate(item, item.anchor ?? undefined)}>{item.anchor ? 'Открыть диапазон → bytes и пакеты' : item.stream_id ? 'Открыть пустое направление' : item.session_id ? 'Открыть соединение и диагностику' : 'Открыть исходную запись'}</Button>
+    <h4>Извлечённые значения</h4><p className="muted text-xs">Целые передаются точными строками. HEX-предпросмотр — до 64 байтов, полный диапазон доступен по клику.</p>
+    <div className="decoded-list" ref={fieldScroll} role="list" aria-label="Поля контрпримера"><div style={{ height: fields.getTotalSize(), position: 'relative' }}>{fields.getVirtualItems().map(row => { const f = item.fields![row.index]; return <button role="listitem" disabled={!f.anchor} className="framing-row" key={f.path} style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => f.anchor && navigate(item, f.anchor)}><strong>{f.path} = {f.value || '(пусто)'}{f.preview_truncated ? '…' : ''}</strong><small>{f.kind} · [{f.offset}, {f.offset + f.length}) · {f.length} bytes</small></button> })}</div>{!item.fields?.length && <p className="muted p-3">Извлечённых значений нет.</p>}</div>
+    <h4>Неразобранные / неопределённые участки</h4>{item.unknown_ranges?.length ? <div className="decoded-list" ref={unknownScroll} role="list" aria-label="Остатки контрпримера"><div style={{ height: unknown.getTotalSize(), position: 'relative' }}>{unknown.getVirtualItems().map(row => { const u = item.unknown_ranges![row.index]; return <button role="listitem" className="framing-row leftover" key={u.anchor.byte_range.start} style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => navigate(item, u.anchor)}><strong>[{u.anchor.byte_range.start}, {u.anchor.byte_range.end})</strong><small>{u.reason} · Открыть bytes и источники</small></button> })}</div></div> : <p className="muted">Отдельных неразобранных диапазонов нет. Для ошибки фрейминга используйте полный диапазон выше; для записи без TCP размер потока неизвестен.</p>}
+  </section>
+}

@@ -1,0 +1,134 @@
+{
+  "tshark": "TShark (Wireshark) 4.6.9 (v4.6.9-0-g2d548b197c75).",
+  "fields": [
+    "frame.number",
+    "frame.time_epoch",
+    "frame.cap_len",
+    "frame.len",
+    "ip.src",
+    "ip.dst",
+    "tcp.srcport",
+    "tcp.dstport",
+    "tcp.seq_raw",
+    "tcp.ack_raw",
+    "tcp.flags",
+    "tcp.len",
+    "tcp.payload"
+  ],
+  "fixtures": [
+    {
+      "fixture": "big-endian-nano.pcap",
+      "packets": 1
+    },
+    {
+      "fixture": "framing/length-big.pcap",
+      "packets": 6
+    },
+    {
+      "fixture": "framing/length-incomplete.pcap",
+      "packets": 6
+    },
+    {
+      "fixture": "framing/length-little.pcap",
+      "packets": 6
+    },
+    {
+      "fixture": "framing/markers.pcap",
+      "packets": 6
+    },
+    {
+      "fixture": "interpretation/arrays-new-parameters.pcap",
+      "packets": 5
+    },
+    {
+      "fixture": "interpretation/arrays-variants.pcap",
+      "packets": 7
+    },
+    {
+      "fixture": "multi-interface.pcapng",
+      "packets": 3
+    },
+    {
+      "fixture": "ordered.pcap",
+      "packets": 2
+    },
+    {
+      "fixture": "raw-ip.pcap",
+      "packets": 1
+    },
+    {
+      "fixture": "tcp/bad-checksum.pcap",
+      "packets": 1
+    },
+    {
+      "fixture": "tcp/conflicting-server-syn.pcap",
+      "packets": 5
+    },
+    {
+      "fixture": "tcp/delayed-syn.pcap",
+      "packets": 3
+    },
+    {
+      "fixture": "tcp/gaps-overlaps.pcap",
+      "packets": 6
+    },
+    {
+      "fixture": "tcp/isolated-ambiguous.pcap",
+      "packets": 6
+    },
+    {
+      "fixture": "tcp/late-payload-after-fin.pcap",
+      "packets": 7
+    },
+    {
+      "fixture": "tcp/midstream.pcap",
+      "packets": 2
+    },
+    {
+      "fixture": "tcp/missing-prefix.pcap",
+      "packets": 4
+    },
+    {
+      "fixture": "tcp/new-syn-without-close.pcap",
+      "packets": 8
+    },
+    {
+      "fixture": "tcp/ordered.pcap",
+      "packets": 5
+    },
+    {
+      "fixture": "tcp/reordered-retransmitted.pcap",
+      "packets": 7
+    },
+    {
+      "fixture": "tcp/reused-tuple.pcap",
+      "packets": 11
+    },
+    {
+      "fixture": "tcp/simultaneous-open.pcap",
+      "packets": 5
+    },
+    {
+      "fixture": "tcp/syn-fin-retransmitted.pcap",
+      "packets": 8
+    },
+    {
+      "fixture": "tcp/truncated-zero.pcap",
+      "packets": 4
+    },
+    {
+      "fixture": "tcp/wrap-fin.pcap",
+      "packets": 5
+    },
+    {
+      "fixture": "vlan.pcap",
+      "packets": 1
+    }
+  ],
+  "packets": 131,
+  "excluded": [
+    "unsupported linktype: no applicable independent decoder",
+    "simple-packet.pcapng: no source timestamp in Simple Packet Block",
+    "mixed-diagnostics.pcap: malformed headers have decoder-specific diagnostics"
+  ]
+}

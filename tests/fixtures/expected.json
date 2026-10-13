@@ -1,0 +1,20 @@
+{
+  "ordered.pcap": {
+    "packet_offsets": [
+      40,
+      115
+    ],
+    "payload_offsets": [
+      54,
+      54
+    ],
+    "payloads_hex": [
+      "48454c4c4f",
+      "574f524c44"
+    ],
+    "timestamp_ns": [
+      1700000000000123000,
+      1700000000000124000
+    ]
+  }
+}

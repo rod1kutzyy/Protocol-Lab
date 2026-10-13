@@ -1,0 +1,8 @@
+*
+!backend
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/src
+!backend/src/**
+!scripts
+!scripts/**

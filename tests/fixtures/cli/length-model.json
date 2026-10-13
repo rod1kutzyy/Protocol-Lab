@@ -1,0 +1,9 @@
+{
+  "schema_version": "interpretation-1",
+  "name": "Length-prefixed bytes",
+  "framing": {"rule": {"kind": "length", "width": 2, "adjustment": 2}},
+  "fields": [
+    {"kind": "int", "name": "n", "width": 2, "signed": false, "endian": "big", "constant": 3},
+    {"kind": "bytes", "name": "payload", "length": {"field": "n"}}
+  ]
+}

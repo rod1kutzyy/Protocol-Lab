@@ -1,0 +1,54 @@
+{
+  "ordered.pcap": {
+    "a_to_b": "HELLOWORLD",
+    "b_to_a": "OK"
+  },
+  "reordered-retransmitted.pcap": {
+    "a_to_b": "HELLOWORLD"
+  },
+  "gaps-overlaps.pcap": {
+    "known": [
+      [
+        0,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        8,
+        10
+      ]
+    ],
+    "ambiguous": [
+      [
+        3,
+        4
+      ]
+    ],
+    "gap": [
+      [
+        5,
+        8
+      ]
+    ],
+    "truncated": [
+      [
+        10,
+        13
+      ]
+    ]
+  },
+  "wrap-fin.pcap": {
+    "a_to_b": "ABCD",
+    "extent": 4
+  },
+  "reused-tuple.pcap": {
+    "sessions": 2,
+    "a_to_b": [
+      "OLD",
+      "NEW"
+    ]
+  }
+}
