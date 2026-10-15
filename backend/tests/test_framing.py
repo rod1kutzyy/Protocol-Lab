@@ -136,6 +136,53 @@ def test_marker_search_crosses_read_boundaries_but_never_unknown_bytes():
     assert any(p.data_status == "incomplete" for p in result.pieces)
 
 
+def test_marker_stop_reasons_distinguish_limit_gap_and_capture_end():
+    rule = dict(kind="markers", start_hex="3c", end_hex="3e")
+    limited = execute(b"<abcdef>", rule, max_message_bytes=4)
+    tail = limited.pieces[0]
+    assert tail.diagnostic == "end_marker_search_limit_exceeded"
+    assert tail.technical_limit.name == "max_message_bytes"
+    assert tail.technical_limit.observed_is_lower_bound
+    assert tail.anchor.byte_range.end == 8 and limited.leftover_bytes == 8
+    end = execute(b"<abc", rule)
+    assert end.pieces[0].diagnostic == "end_marker_not_found_before_stream_end"
+    assert end.pieces[0].technical_limit is None
+    gap = execute(b"<abc??>", rule, [(0, 4, "known"), (4, 6, "gap"), (6, 7, "known")])
+    assert gap.pieces[0].diagnostic == "end_marker_search_interrupted_by_unknown_bytes"
+    assert gap.pieces[0].technical_limit is None and gap.leftover_bytes == 7
+    assert execute(b"<ab>", rule, max_message_bytes=4).message_count == 1
+
+
+def test_length_limit_is_distinct_from_impossible_length_and_keeps_full_extent():
+    limited = execute(b"\x08ABCDEFG", {"kind": "length", "width": 1}, max_message_bytes=4)
+    assert limited.pieces[0].diagnostic == "max_message_bytes_exceeded_no_resynchronization"
+    assert limited.pieces[0].technical_limit.observed == "8"
+    assert limited.leftover_bytes == 8
+    assert (
+        execute(b"\x08ABCDEFG", {"kind": "length", "width": 1}, max_message_bytes=8).message_count
+        == 1
+    )
+    invalid = execute(b"\x00ABCDEFG", {"kind": "length", "width": 1})
+    assert invalid.pieces[0].diagnostic == "invalid_length_no_resynchronization"
+    assert invalid.pieces[0].technical_limit is None
+
+
+def test_historical_framing_result_keeps_engine_and_combined_diagnostic():
+    from protocol_lab.framing.engine import FramingResult, identity
+
+    result = execute(b"<abc", dict(kind="markers", start_hex="3c", end_hex="3e"))
+    old = result.model_dump(mode="json")
+    old["engine_version"] = "framing-v1"
+    for piece in old["pieces"]:
+        piece.pop("technical_limit")
+        piece["diagnostic"] = "end_marker_not_found_or_limit_exceeded"
+    historic = FramingResult.model_validate(old)
+    assert historic.engine_version == "framing-v1"
+    assert historic.pieces[0].diagnostic == "end_marker_not_found_or_limit_exceeded"
+    assert historic.pieces[0].technical_limit is None
+    assert result.id == identity(STREAM, "tcp-v1", "0" * 64, result.spec)
+
+
 def test_limits_cancel_schema_and_immutable_revision():
     rule = {"kind": "fixed", "size": 2}
     result = execute(b"ABCD", rule)

@@ -75,6 +75,169 @@ def upload(client, project_id, name="ordered.pcap", policy="warn"):
     return response.json()["id"]
 
 
+def test_a1_search_holdout_persistence_and_source_navigation(storage, tmp_path, monkeypatch):
+    from protocol_lab.storage.inference import InferenceStore
+    from protocol_lab.storage.portable import restore, snapshot, verify_bundle
+
+    repository, settings, _ = storage
+    with TestClient(create_app(settings)) as client:
+        project = client.post("/api/v1/projects", json={"name": "A1"}).json()["id"]
+        captures = []
+        for name in ("length-discovery", "length-holdout"):
+            job = finish(client, upload(client, project, f"inference/{name}.pcap"))
+            capture = job["result"]["capture_id"]
+            job = finish(
+                client, client.post(f"/api/v1/captures/{capture}/reconstruct", json={}).json()["id"]
+            )
+            assert job["status"] == "succeeded", job
+            captures.append(capture)
+        corpus = client.post(
+            f"/api/v1/projects/{project}/corpora",
+            json={
+                "name": "A1 entire corpus",
+                "spec": {"capture_ids": captures},
+            },
+        ).json()
+        spec = dict(
+            corpus_version_id=corpus["id"],
+            detectors=[dict(family="framing"), dict(family="structure"), dict(family="entropy")],
+            split=dict(discovery_ids=captures[:1], holdout_ids=captures[1:]),
+            search=dict(
+                fixed_size_max=64,
+                adjustment_min=-8,
+                adjustment_max=8,
+                marker_max_bytes=4,
+                max_marker_patterns=8,
+            ),
+            budget=dict(max_header_bytes=8, max_rule_trials=5000),
+        )
+        response = client.post(
+            f"/api/v1/projects/{project}/inference-runs", json={"document_json": json.dumps(spec)}
+        )
+        assert response.status_code == 202, response.text
+        job = finish(client, response.json()["id"])
+        assert job["status"] == "succeeded", job
+        run_id = job["result"]["run_id"]
+        before = client.get(f"/api/v1/inference-runs/{run_id}").json()
+        candidates = client.get(f"/api/v1/inference-runs/{run_id}/candidates?limit=100").json()
+        assert candidates["total"] > 0, before
+        candidate = next(c for c in candidates["items"] if c["kind"] == "length_framing")
+        id = candidate["id"]
+        examples = client.get(f"/api/v1/inference-candidates/{id}/evidence").json()
+        assert examples["total"] >= 6 and examples["items"][0]["sources"], examples
+        source = examples["items"][0]["sources"][0]
+        r = source["stream"]["byte_range"]
+        raw = client.get(
+            f"/api/v1/streams/{source['stream']['stream_id']}/bytes?offset={r['start']}"
+            f"&length={r['end'] - r['start']}"
+        )
+        assert raw.status_code == 200
+        response = client.post(
+            f"/api/v1/inference-candidates/{id}/evaluations", json={"holdout": True}
+        )
+        assert response.status_code == 202, response.text
+        job = finish(client, response.json()["id"])
+        assert job["status"] == "succeeded", job
+        evaluation_id = job["result"]["evaluation_id"]
+        evaluated = client.get(f"/api/v1/inference-evaluations/{evaluation_id}").json()
+        assert evaluated["target_side"] == "holdout"
+        assert evaluated["evaluation"]["metrics"]["matched"] >= 3, evaluated
+        assert evaluated["evaluation"]["independence"] == "independent", evaluated
+        draft = client.post(f"/api/v1/inference-candidates/{id}/model-draft", json={}).json()
+        assert draft["compilable"] and '"length_value"' in draft["document_json"]
+        assert client.get(f"/api/v1/inference-runs/{run_id}/currentness").json()["stale"] is False
+        other = client.post("/api/v1/projects", json={"name": "Unrelated"}).json()["id"]
+        response = client.post(
+            f"/api/v1/projects/{other}/inference-runs", json={"document_json": json.dumps(spec)}
+        )
+        assert response.status_code == 422
+        # Bounded pages have real totals, no silent evidence truncation.
+        assert (
+            client.get(f"/api/v1/inference-candidates/{id}/evidence?limit=1").json()["next_offset"]
+            == 1
+        )
+        assert (
+            client.get(f"/api/v1/inference-candidates/{id}/evidence?limit=1001").status_code == 422
+        )
+        # Cooperative cancellation after real worker progress preserves published research.
+        spec["budget"]["max_rule_trials"] = 1000000
+        running = client.post(
+            f"/api/v1/projects/{project}/inference-runs", json={"document_json": json.dumps(spec)}
+        ).json()
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            current = client.get(f"/api/v1/jobs/{running['id']}").json()
+            if current["status"] == "running" and "framing:" in current["message"]:
+                break
+            time.sleep(0.02)
+        assert current["status"] == "running" and "framing:" in current["message"], current
+        assert client.get(f"/api/v1/inference-runs/{run_id}").json() == before
+        assert client.post(f"/api/v1/jobs/{running['id']}/cancel").status_code == 200
+        assert finish(client, running["id"])["status"] == "cancelled"
+        assert len(client.get(f"/api/v1/projects/{project}/inference-runs").json()["items"]) == 1
+    with TestClient(create_app(settings)) as client:
+        assert client.get(f"/api/v1/inference-runs/{run_id}").json() == before
+        assert client.get(f"/api/v1/inference-candidates/{id}/evidence").json() == examples
+        checkpoint = tmp_path / "a1-bundle"
+        snapshot(repository, UUID(project), checkpoint)
+        bundle = verify_bundle(checkpoint)
+        assert bundle.format_version == 2
+        assert bundle.table_counts["inference_runs"] == 1
+        assert bundle.table_counts["inference_evaluations"] == 1
+        assert InferenceStore(repository).get(UUID(run_id)).semantic_sha256
+    # Same core on exact GUI snapshot, without a database or the old project directory.
+    import io
+
+    from protocol_lab.services.inference_files import infer_files
+
+    output = io.StringIO()
+    infer_files(
+        [FIXTURES / f"inference/{name}.pcap" for name in ("length-discovery", "length-holdout")],
+        json.dumps(before["snapshot"]),
+        output,
+    )
+    assert json.loads(output.getvalue())["result"]["semantic_sha256"] == before["semantic_sha256"]
+    with destination_store(storage, tmp_path, monkeypatch) as (destination, destination_settings):
+        restore(destination, checkpoint)
+        with TestClient(create_app(destination_settings)) as client:
+            assert client.get(f"/api/v1/inference-runs/{run_id}").json() == before
+            assert client.get(f"/api/v1/inference-candidates/{id}/evidence").json() == examples
+            assert client.get(f"/api/v1/inference-evaluations/{evaluation_id}").json() == evaluated
+    legacy = tmp_path / "legacy-0006"
+    shutil.copytree(checkpoint, legacy)
+    inventory = json.loads((legacy / "bundle.json").read_text())
+    lines = [json.loads(line) for line in (legacy / "metadata.jsonl").read_text().splitlines()]
+    for line in lines:
+        if line["table"].startswith("inference_") and "relative_path" in line["row"]:
+            name = line["row"]["relative_path"]
+            (legacy / name).unlink()
+            inventory["members"].pop(name)
+    (legacy / "metadata.jsonl").chmod(0o644)
+    (legacy / "metadata.jsonl").write_text(
+        "".join(
+            json.dumps(line) + "\n" for line in lines if not line["table"].startswith("inference_")
+        )
+    )
+    inventory["format_version"], inventory["metadata_schema_revision"] = 1, "0006_validation"
+    inventory["table_counts"] = {
+        name: n
+        for name, n in inventory["table_counts"].items()
+        if not name.startswith("inference_")
+    }
+    metadata = (legacy / "metadata.jsonl").read_bytes()
+    inventory["members"]["metadata.jsonl"] = dict(
+        sha256=hashlib.sha256(metadata).hexdigest(), size_bytes=len(metadata)
+    )
+    (legacy / "bundle.json").write_text(json.dumps(inventory))
+    with destination_store(storage, tmp_path, monkeypatch) as (destination, _):
+        restore(destination, legacy)
+        assert InferenceStore(destination).runs(UUID(project), 0, 10) == []
+        assert (
+            destination.get_capture(UUID(captures[0])).sha256
+            == repository.get_capture(UUID(captures[0])).sha256
+        )
+
+
 def test_import_persistence_duplicates_provenance_and_immutability(storage):
     repository, settings, config = storage
     original = (FIXTURES / "ordered.pcap").read_bytes()
@@ -657,6 +820,10 @@ def test_stage5_upgrade_backfills_times_without_rewriting_evidence(storage):
     # Reproduce a populated stage-4 schema only inside this fixture's disposable schema.
     with repository.engine.begin() as connection:
         for table in [
+            "inference_evidence",
+            "inference_evaluations",
+            "inference_candidates",
+            "inference_runs",
             "validation_results",
             "validation_runs",
             "corpus_versions",
@@ -897,6 +1064,10 @@ def test_stage6_upgrade_preserves_populated_stage5_research(storage):
     # Only this fixture's disposable schema; emulate stage 5 before the adding migration.
     with repository.engine.begin() as connection:
         for table in (
+            "inference_evidence",
+            "inference_evaluations",
+            "inference_candidates",
+            "inference_runs",
             "validation_results",
             "validation_runs",
             "corpus_versions",
@@ -1140,6 +1311,10 @@ def test_stage7_additive_migration_preserves_existing_framing(storage):
     }
     with repository.engine.begin() as db:
         for table in [
+            "inference_evidence",
+            "inference_evaluations",
+            "inference_candidates",
+            "inference_runs",
             "validation_results",
             "validation_runs",
             "corpus_versions",
@@ -1183,6 +1358,105 @@ def stage8_validate(client, project, corpus, version):
     completed = finish(client, response.json()["id"])
     assert completed["status"] == "succeeded", completed
     return completed["result"]["run_id"]
+
+
+def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, monkeypatch):
+    repository, settings, _ = storage
+    with TestClient(create_app(settings)) as client:
+        project = client.post("/api/v1/projects", json={"name": "A0 limits"}).json()["id"]
+        capture = finish(
+            client, upload(client, project, "interpretation/arrays-new-parameters.pcap")
+        )["result"]["capture_id"]
+        assert finish(client, reconstruct_job(client, capture))["status"] == "succeeded"
+        sessions = client.get(f"/api/v1/captures/{capture}/sessions").json()["items"]
+        stream = next(s for s in sessions[0]["streams"] if s["direction"] == "a_to_b")["id"]
+        framing = {"rule": {"kind": "length", "width": 2, "adjustment": 2}}
+        framed = finish(
+            client, client.post(f"/api/v1/streams/{stream}/framing", json=framing).json()["id"]
+        )["result"]["run_id"]
+        document = dict(
+            schema_version="interpretation-1",
+            name="A0 array",
+            framing=framing,
+            max_array_items=2,
+            fields=[
+                dict(kind="int", name="n", width=2, signed=False, endian="big"),
+                dict(
+                    kind="array",
+                    name="items",
+                    count={"field": "n"},
+                    fields=[dict(kind="int", name="v", width=1, signed=False, endian="big")],
+                ),
+            ],
+        )
+        version = client.post(
+            f"/api/v1/projects/{project}/interpretations",
+            json={"document_json": json.dumps(document)},
+        ).json()
+        decoded = finish(
+            client,
+            client.post(
+                f"/api/v1/framing-runs/{framed}/interpretations",
+                json={"version_id": version["id"]},
+            ).json()["id"],
+        )["result"]["run_id"]
+        summary = client.get(f"/api/v1/interpretation-runs/{decoded}/results").json()["items"][0]
+        assert summary["status"] == "unknown"
+        assert summary["technical_limit"]["observed"] == "4"
+        assert summary["technical_limit"]["maximum"] == "2"
+        corpus = client.post(
+            f"/api/v1/projects/{project}/corpora",
+            json={
+                "name": "A0",
+                "spec": {"capture_ids": [capture]},
+            },
+        ).json()
+        first = stage8_validate(client, project, corpus["id"], version["id"])
+        first_meta = client.get(f"/api/v1/validation-runs/{first}").json()
+        assert first_meta["coverage"]["message_counts"]["unknown"] == 1
+        assert first_meta["coverage"]["message_counts"]["failed"] == 0
+        assert first_meta["snapshot"]["interpretation_engine_version"] == "interpretation-v2"
+        assert first_meta["snapshot"]["framing_engine_version"] == "framing-v2"
+        from protocol_lab.storage import validation as validation_storage
+
+        with monkeypatch.context() as changed_engine:
+            changed_engine.setattr(validation_storage, "FRAMING_VERSION", "future-framing-version")
+            currentness = client.get(f"/api/v1/validation-runs/{first}/currentness").json()
+            assert currentness["stale"] and "engine_version_changed" in currentness["reasons"]
+            assert client.get(f"/api/v1/validation-runs/{first}").json() == first_meta
+        row = next(
+            row
+            for row in client.get(f"/api/v1/validation-runs/{first}/results").json()["items"]
+            if row["kind"] == "message"
+        )
+        assert row["technical_limit"]["name"] == "max_array_items"
+        document["max_array_items"] = 4
+        revised = client.post(
+            f"/api/v1/projects/{project}/interpretations",
+            json={
+                "document_json": json.dumps(document),
+                "parent_id": version["id"],
+            },
+        ).json()
+        second = stage8_validate(client, project, corpus["id"], revised["id"])
+        assert (
+            client.get(f"/api/v1/validation-runs/{second}").json()["coverage"]["message_counts"][
+                "passed"
+            ]
+            == 1
+        )
+        assert client.get(f"/api/v1/validation-runs/{first}").json() == first_meta
+        assert client.get(f"/api/v1/validation-runs/{first}/compare/{second}").json()["counts"] == {
+            "status": 1
+        }
+    with TestClient(create_app(settings)) as client:
+        assert client.get(f"/api/v1/validation-runs/{first}").json() == first_meta
+        assert (
+            client.get(f"/api/v1/validation-runs/{first}/results/{row['id']}").json()[
+                "technical_limit"
+            ]["observed"]
+            == "4"
+        )
 
 
 def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(storage):
@@ -1472,6 +1746,10 @@ def test_stage8_additive_migration_preserves_populated_stage7_project(storage):
     }
     with repository.engine.begin() as db:
         for table in [
+            "inference_evidence",
+            "inference_evaluations",
+            "inference_candidates",
+            "inference_runs",
             "validation_results",
             "validation_runs",
             "corpus_versions",
@@ -1708,7 +1986,9 @@ def test_stage9_full_snapshot_archive_restore_without_old_directory(storage, tmp
         saved = stage9_operation(client, project, "save")
         checkpoint = repository.directory(UUID(project)) / saved["checkpoint"]
         bundle = verify_bundle(checkpoint)
-        assert all(bundle.table_counts[name] > 0 for name in TABLES), bundle.table_counts
+        assert all(
+            bundle.table_counts[name] > 0 for name in TABLES if not name.startswith("inference_")
+        ), bundle.table_counts
         exported = stage9_operation(client, project, "export")
         archive_response = client.get(exported["download_url"])
         assert archive_response.status_code == 200
@@ -2047,8 +2327,9 @@ def test_stage10_configured_limits_preserve_published_research(storage):
 
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project, capture, stream, version, first, _, _, observation = stage9_research(client)
+        project, capture, stream, version, first, _, _, _ = stage9_research(client)
         previous = client.get(f"/api/v1/validation-runs/{first}").json()
+        observations = client.get(f"/api/v1/projects/{project}/observations").json()
         evidence = client.get(f"/api/v1/streams/{stream}/bytes?offset=0&length=2").json()
         corpus = previous["snapshot"]["corpus"]["id"]
         framed = client.get(f"/api/v1/streams/{stream}/framing").json()["items"][0]["id"]
@@ -2074,9 +2355,7 @@ def test_stage10_configured_limits_preserve_published_research(storage):
         assert "bytes" in failed["error"]
         assert client.get(f"/api/v1/validation-runs/{first}").json() == previous
         assert client.get(f"/api/v1/streams/{stream}/bytes?offset=0&length=2").json() == evidence
-        assert (
-            client.get(f"/api/v1/projects/{project}/observations").json()["items"][0] == observation
-        )
+        assert client.get(f"/api/v1/projects/{project}/observations").json() == observations
     with TestClient(create_app(replace(settings, max_packets=1))) as client:
         before = client.get(f"/api/v1/projects/{project}/captures").json()
         failed = finish(client, upload(client, project, "tcp/reused-tuple.pcap"))

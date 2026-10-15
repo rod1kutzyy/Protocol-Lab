@@ -1,0 +1,1213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:inference-contracts-1:candidate",
+  "$defs": {
+    "ByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "ByteRange",
+      "type": "object"
+    },
+    "CandidateScope": {
+      "additionalProperties": false,
+      "properties": {
+        "corpus_version_id": {
+          "format": "uuid",
+          "title": "Corpus Version Id",
+          "type": "string"
+        },
+        "capture_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Capture Ids",
+          "type": "array"
+        },
+        "session_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Session Ids",
+          "type": "array"
+        },
+        "direction": {
+          "default": "both",
+          "enum": [
+            "both",
+            "a_to_b",
+            "b_to_a"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group Id"
+        }
+      },
+      "required": [
+        "corpus_version_id",
+        "capture_ids"
+      ],
+      "title": "CandidateScope",
+      "type": "object"
+    },
+    "ChecksumRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "checksum_relation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "algorithm": {
+          "enum": [
+            "xor8",
+            "sum8",
+            "sum16",
+            "internet_checksum",
+            "CRC-8/SMBUS",
+            "CRC-16/ARC",
+            "CRC-16/IBM-3740",
+            "CRC-16/IBM-SDLC",
+            "CRC-32/ISO-HDLC"
+          ],
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "covered_ranges": {
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Covered Ranges",
+          "type": "array"
+        },
+        "exclude_field": {
+          "default": true,
+          "title": "Exclude Field",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "algorithm",
+        "covered_ranges"
+      ],
+      "title": "ChecksumRule",
+      "type": "object"
+    },
+    "CounterRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "counter",
+            "identifier_relation"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "step": {
+          "default": "fixed",
+          "enum": [
+            "fixed",
+            "message_length",
+            "payload_length"
+          ],
+          "title": "Step",
+          "type": "string"
+        },
+        "increment": {
+          "default": 1,
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Increment",
+          "type": "integer"
+        },
+        "scope": {
+          "default": "direction",
+          "enum": [
+            "direction",
+            "message_group",
+            "session"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "wrap": {
+          "default": true,
+          "title": "Wrap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "field"
+      ],
+      "title": "CounterRule",
+      "type": "object"
+    },
+    "DelimiterRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "field_delimiter",
+          "title": "Kind",
+          "type": "string"
+        },
+        "delimiter_hex": {
+          "maxLength": 128,
+          "pattern": "^(?:[0-9a-fA-F]{2})+$",
+          "title": "Delimiter Hex",
+          "type": "string"
+        },
+        "include_terminator": {
+          "default": false,
+          "title": "Include Terminator",
+          "type": "boolean"
+        },
+        "escaping": {
+          "const": "none",
+          "default": "none",
+          "title": "Escaping",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "delimiter_hex"
+      ],
+      "title": "DelimiterRule",
+      "type": "object"
+    },
+    "EventRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "event_association",
+          "title": "Kind",
+          "type": "string"
+        },
+        "before_ns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Before Ns",
+          "type": "integer"
+        },
+        "after_ns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "After Ns",
+          "type": "integer"
+        },
+        "clock_offset_ns": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Clock Offset Ns",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "before_ns",
+        "after_ns"
+      ],
+      "title": "EventRule",
+      "type": "object"
+    },
+    "FixedRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "fixed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "size"
+      ],
+      "title": "FixedRule",
+      "type": "object"
+    },
+    "FramingCandidateRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "fixed_framing",
+            "length_framing",
+            "marker_framing"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "framing": {
+          "$ref": "#/$defs/FramingSpec"
+        }
+      },
+      "required": [
+        "kind",
+        "framing"
+      ],
+      "title": "FramingCandidateRule",
+      "type": "object"
+    },
+    "FramingSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "framing-1",
+          "default": "framing-1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "start": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "rule": {
+          "discriminator": {
+            "mapping": {
+              "fixed": "#/$defs/FixedRule",
+              "length": "#/$defs/LengthRule",
+              "manual": "#/$defs/ManualRule",
+              "markers": "#/$defs/MarkerRule"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ManualRule"
+            },
+            {
+              "$ref": "#/$defs/FixedRule"
+            },
+            {
+              "$ref": "#/$defs/LengthRule"
+            },
+            {
+              "$ref": "#/$defs/MarkerRule"
+            }
+          ],
+          "title": "Rule"
+        },
+        "max_message_bytes": {
+          "default": 1048576,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Max Message Bytes",
+          "type": "integer"
+        },
+        "max_pieces": {
+          "default": 200000,
+          "maximum": 200000,
+          "minimum": 1,
+          "title": "Max Pieces",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rule"
+      ],
+      "title": "FramingSpec",
+      "type": "object"
+    },
+    "GroupRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "message_group",
+            "opcode_candidate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "key_fields": {
+          "items": {
+            "$ref": "#/$defs/IntegerLocation"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Key Fields",
+          "type": "array"
+        },
+        "masked_ranges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 128,
+          "title": "Masked Ranges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "key_fields"
+      ],
+      "title": "GroupRule",
+      "type": "object"
+    },
+    "InferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "enum": [
+            "message",
+            "transition",
+            "event",
+            "session"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "eligible": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Eligible",
+          "type": "integer"
+        },
+        "matched": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Matched",
+          "type": "integer"
+        },
+        "contradicted": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Contradicted",
+          "type": "integer"
+        },
+        "unknown": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Unknown",
+          "type": "integer"
+        },
+        "ambiguous": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Ambiguous",
+          "type": "integer"
+        },
+        "not_applicable": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Not Applicable",
+          "type": "integer"
+        },
+        "captures": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Captures",
+          "type": "integer"
+        },
+        "sessions": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Sessions",
+          "type": "integer"
+        },
+        "unique_messages": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Unique Messages",
+          "type": "integer"
+        },
+        "distinct_values": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Distinct Values",
+          "type": "integer"
+        },
+        "distinct_lengths": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Distinct Lengths",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unit",
+        "eligible",
+        "matched",
+        "contradicted",
+        "unknown",
+        "ambiguous",
+        "not_applicable",
+        "captures",
+        "sessions",
+        "unique_messages"
+      ],
+      "title": "InferenceMetrics",
+      "type": "object"
+    },
+    "IntegerLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "width": {
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "endian": {
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "signed": {
+          "default": false,
+          "title": "Signed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "offset",
+        "width",
+        "endian"
+      ],
+      "title": "IntegerLocation",
+      "type": "object"
+    },
+    "LengthRelationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "length_relation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "target": {
+          "enum": [
+            "message",
+            "payload",
+            "array"
+          ],
+          "title": "Target",
+          "type": "string"
+        },
+        "target_offset": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Target Offset",
+          "type": "integer"
+        },
+        "multiplier": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier",
+          "type": "integer"
+        },
+        "adjustment": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "target"
+      ],
+      "title": "LengthRelationRule",
+      "type": "object"
+    },
+    "LengthRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "length",
+          "title": "Kind",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 65536,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "width": {
+          "default": 2,
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "endian": {
+          "default": "big",
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "multiplier": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier",
+          "type": "integer"
+        },
+        "adjustment": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "LengthRule",
+      "type": "object"
+    },
+    "ManualRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "manual",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ranges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 10000,
+          "title": "Ranges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ManualRule",
+      "type": "object"
+    },
+    "MappingRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "parameter_mapping",
+          "title": "Kind",
+          "type": "string"
+        },
+        "parameter_path": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Parameter Path",
+          "type": "array"
+        },
+        "encoding": {
+          "enum": [
+            "ascii",
+            "utf-8",
+            "utf-16le",
+            "utf-16be",
+            "decimal",
+            "integer"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "base64": {
+          "default": "none",
+          "enum": [
+            "none",
+            "standard",
+            "urlsafe"
+          ],
+          "title": "Base64",
+          "type": "string"
+        },
+        "padding": {
+          "default": true,
+          "title": "Padding",
+          "type": "boolean"
+        },
+        "bom": {
+          "default": false,
+          "title": "Bom",
+          "type": "boolean"
+        },
+        "integer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntegerLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "parameter_path",
+        "encoding"
+      ],
+      "title": "MappingRule",
+      "type": "object"
+    },
+    "MarkerRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "markers",
+          "title": "Kind",
+          "type": "string"
+        },
+        "start_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "Start Hex",
+          "type": "string"
+        },
+        "end_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "End Hex",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "start_hex",
+        "end_hex"
+      ],
+      "title": "MarkerRule",
+      "type": "object"
+    },
+    "ProfileRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "byte_profile",
+            "entropy_region"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "measurement": {
+          "enum": [
+            "within_block",
+            "sliding_window",
+            "across_messages"
+          ],
+          "title": "Measurement",
+          "type": "string"
+        },
+        "window_bytes": {
+          "default": 64,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Window Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "measurement"
+      ],
+      "title": "ProfileRule",
+      "type": "object"
+    },
+    "RankingComponents": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "lexicographic-1",
+          "default": "lexicographic-1",
+          "title": "Version",
+          "type": "string"
+        },
+        "supporting_sessions": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Supporting Sessions",
+          "type": "integer"
+        },
+        "matched": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Matched",
+          "type": "integer"
+        },
+        "checked": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Checked",
+          "type": "integer"
+        },
+        "explained_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Explained Bytes",
+          "type": "integer"
+        },
+        "contradictions": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Contradictions",
+          "type": "integer"
+        },
+        "free_parameters": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Free Parameters",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "supporting_sessions",
+        "matched",
+        "checked",
+        "explained_bytes",
+        "contradictions",
+        "free_parameters"
+      ],
+      "title": "RankingComponents",
+      "type": "object"
+    },
+    "RegionRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "constant_region",
+            "start_marker",
+            "end_marker",
+            "fixed_width_region",
+            "session_stable_region",
+            "session_token_candidate",
+            "copied_value",
+            "field_boundary_candidate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "relative_to": {
+          "default": "message_start",
+          "enum": [
+            "message_start",
+            "message_end"
+          ],
+          "title": "Relative To",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "length": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Length",
+          "type": "integer"
+        },
+        "value_hex": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^(?:[0-9a-fA-F]{2})+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Hex"
+        },
+        "relation_scope": {
+          "default": "message_group",
+          "enum": [
+            "message_group",
+            "direction",
+            "session"
+          ],
+          "title": "Relation Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "offset",
+        "length"
+      ],
+      "title": "RegionRule",
+      "type": "object"
+    },
+    "TimestampRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "timestamp_candidate",
+            "relative_clock_candidate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "unit": {
+          "enum": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "epoch": {
+          "enum": [
+            "unix",
+            "session_relative",
+            "unknown"
+          ],
+          "title": "Epoch",
+          "type": "string"
+        },
+        "clock_offset_ns": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Clock Offset Ns",
+          "type": "string"
+        },
+        "tolerance_ns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tolerance Ns",
+          "type": "integer"
+        },
+        "drift_ppm": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": -1000000,
+          "title": "Drift Ppm",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "unit",
+        "epoch",
+        "tolerance_ns"
+      ],
+      "title": "TimestampRule",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "inference-candidate-1",
+      "default": "inference-candidate-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "family": {
+      "enum": [
+        "framing",
+        "structure",
+        "groups",
+        "counters",
+        "tokens",
+        "checksums",
+        "timestamps",
+        "entropy",
+        "events",
+        "data_mapping"
+      ],
+      "title": "Family",
+      "type": "string"
+    },
+    "detector_version": {
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Detector Version",
+      "type": "string"
+    },
+    "rule_schema_version": {
+      "const": "inference-rule-1",
+      "default": "inference-rule-1",
+      "title": "Rule Schema Version",
+      "type": "string"
+    },
+    "rule": {
+      "discriminator": {
+        "mapping": {
+          "byte_profile": "#/$defs/ProfileRule",
+          "checksum_relation": "#/$defs/ChecksumRule",
+          "constant_region": "#/$defs/RegionRule",
+          "copied_value": "#/$defs/RegionRule",
+          "counter": "#/$defs/CounterRule",
+          "end_marker": "#/$defs/RegionRule",
+          "entropy_region": "#/$defs/ProfileRule",
+          "event_association": "#/$defs/EventRule",
+          "field_boundary_candidate": "#/$defs/RegionRule",
+          "field_delimiter": "#/$defs/DelimiterRule",
+          "fixed_framing": "#/$defs/FramingCandidateRule",
+          "fixed_width_region": "#/$defs/RegionRule",
+          "identifier_relation": "#/$defs/CounterRule",
+          "length_framing": "#/$defs/FramingCandidateRule",
+          "length_relation": "#/$defs/LengthRelationRule",
+          "marker_framing": "#/$defs/FramingCandidateRule",
+          "message_group": "#/$defs/GroupRule",
+          "opcode_candidate": "#/$defs/GroupRule",
+          "parameter_mapping": "#/$defs/MappingRule",
+          "relative_clock_candidate": "#/$defs/TimestampRule",
+          "session_stable_region": "#/$defs/RegionRule",
+          "session_token_candidate": "#/$defs/RegionRule",
+          "start_marker": "#/$defs/RegionRule",
+          "timestamp_candidate": "#/$defs/TimestampRule"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FramingCandidateRule"
+        },
+        {
+          "$ref": "#/$defs/RegionRule"
+        },
+        {
+          "$ref": "#/$defs/LengthRelationRule"
+        },
+        {
+          "$ref": "#/$defs/DelimiterRule"
+        },
+        {
+          "$ref": "#/$defs/GroupRule"
+        },
+        {
+          "$ref": "#/$defs/CounterRule"
+        },
+        {
+          "$ref": "#/$defs/ChecksumRule"
+        },
+        {
+          "$ref": "#/$defs/TimestampRule"
+        },
+        {
+          "$ref": "#/$defs/ProfileRule"
+        },
+        {
+          "$ref": "#/$defs/EventRule"
+        },
+        {
+          "$ref": "#/$defs/MappingRule"
+        }
+      ],
+      "title": "Rule"
+    },
+    "rule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rule Sha256",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/CandidateScope"
+    },
+    "dependency_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Dependency Ids",
+      "type": "array"
+    },
+    "metrics": {
+      "$ref": "#/$defs/InferenceMetrics"
+    },
+    "ranking": {
+      "$ref": "#/$defs/RankingComponents"
+    },
+    "rationale": {
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "assumptions": {
+      "default": [],
+      "items": {
+        "maxLength": 10000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "maxLength": 10000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "alternatives": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Alternatives",
+      "type": "array"
+    },
+    "compiler_support": {
+      "enum": [
+        "interpretation-1",
+        "not_compilable"
+      ],
+      "title": "Compiler Support",
+      "type": "string"
+    },
+    "compiler_reason": {
+      "anyOf": [
+        {
+          "maxLength": 10000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Compiler Reason"
+    }
+  },
+  "required": [
+    "id",
+    "run_id",
+    "family",
+    "detector_version",
+    "rule",
+    "rule_sha256",
+    "scope",
+    "metrics",
+    "ranking",
+    "rationale",
+    "compiler_support"
+  ],
+  "title": "InferenceCandidate",
+  "type": "object"
+}

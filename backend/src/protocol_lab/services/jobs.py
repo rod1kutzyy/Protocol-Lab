@@ -36,6 +36,8 @@ class JobSnapshot(BaseModel):
         "stream_framing",
         "message_interpretation",
         "corpus_validation",
+        "protocol_inference",
+        "inference_evaluation",
         "project_operation",
         "project_restore",
     ] = "worker_diagnostic"
@@ -140,6 +142,8 @@ class JobManager:
             "stream_framing",
             "message_interpretation",
             "corpus_validation",
+            "protocol_inference",
+            "inference_evaluation",
             "project_operation",
             "project_restore",
         ] = "capture_import",
@@ -203,6 +207,10 @@ class JobManager:
                 if job.snapshot.kind == "tcp_reconstruction"
                 else "Stream framing complete"
                 if job.snapshot.kind == "stream_framing"
+                else "Inference complete"
+                if job.snapshot.kind == "protocol_inference"
+                else "Candidate evaluation complete"
+                if job.snapshot.kind == "inference_evaluation"
                 else "Corpus validation complete"
                 if job.snapshot.kind == "corpus_validation"
                 else "Message interpretation complete"

@@ -1,0 +1,851 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:inference-contracts-1:rule",
+  "$defs": {
+    "ByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "ByteRange",
+      "type": "object"
+    },
+    "ChecksumRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "checksum_relation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "algorithm": {
+          "enum": [
+            "xor8",
+            "sum8",
+            "sum16",
+            "internet_checksum",
+            "CRC-8/SMBUS",
+            "CRC-16/ARC",
+            "CRC-16/IBM-3740",
+            "CRC-16/IBM-SDLC",
+            "CRC-32/ISO-HDLC"
+          ],
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "covered_ranges": {
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Covered Ranges",
+          "type": "array"
+        },
+        "exclude_field": {
+          "default": true,
+          "title": "Exclude Field",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "algorithm",
+        "covered_ranges"
+      ],
+      "title": "ChecksumRule",
+      "type": "object"
+    },
+    "CounterRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "counter",
+            "identifier_relation"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "step": {
+          "default": "fixed",
+          "enum": [
+            "fixed",
+            "message_length",
+            "payload_length"
+          ],
+          "title": "Step",
+          "type": "string"
+        },
+        "increment": {
+          "default": 1,
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Increment",
+          "type": "integer"
+        },
+        "scope": {
+          "default": "direction",
+          "enum": [
+            "direction",
+            "message_group",
+            "session"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "wrap": {
+          "default": true,
+          "title": "Wrap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "field"
+      ],
+      "title": "CounterRule",
+      "type": "object"
+    },
+    "DelimiterRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "field_delimiter",
+          "title": "Kind",
+          "type": "string"
+        },
+        "delimiter_hex": {
+          "maxLength": 128,
+          "pattern": "^(?:[0-9a-fA-F]{2})+$",
+          "title": "Delimiter Hex",
+          "type": "string"
+        },
+        "include_terminator": {
+          "default": false,
+          "title": "Include Terminator",
+          "type": "boolean"
+        },
+        "escaping": {
+          "const": "none",
+          "default": "none",
+          "title": "Escaping",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "delimiter_hex"
+      ],
+      "title": "DelimiterRule",
+      "type": "object"
+    },
+    "EventRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "event_association",
+          "title": "Kind",
+          "type": "string"
+        },
+        "before_ns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Before Ns",
+          "type": "integer"
+        },
+        "after_ns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "After Ns",
+          "type": "integer"
+        },
+        "clock_offset_ns": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Clock Offset Ns",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "before_ns",
+        "after_ns"
+      ],
+      "title": "EventRule",
+      "type": "object"
+    },
+    "FixedRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "fixed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "size"
+      ],
+      "title": "FixedRule",
+      "type": "object"
+    },
+    "FramingCandidateRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "fixed_framing",
+            "length_framing",
+            "marker_framing"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "framing": {
+          "$ref": "#/$defs/FramingSpec"
+        }
+      },
+      "required": [
+        "kind",
+        "framing"
+      ],
+      "title": "FramingCandidateRule",
+      "type": "object"
+    },
+    "FramingSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "framing-1",
+          "default": "framing-1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "start": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "rule": {
+          "discriminator": {
+            "mapping": {
+              "fixed": "#/$defs/FixedRule",
+              "length": "#/$defs/LengthRule",
+              "manual": "#/$defs/ManualRule",
+              "markers": "#/$defs/MarkerRule"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ManualRule"
+            },
+            {
+              "$ref": "#/$defs/FixedRule"
+            },
+            {
+              "$ref": "#/$defs/LengthRule"
+            },
+            {
+              "$ref": "#/$defs/MarkerRule"
+            }
+          ],
+          "title": "Rule"
+        },
+        "max_message_bytes": {
+          "default": 1048576,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Max Message Bytes",
+          "type": "integer"
+        },
+        "max_pieces": {
+          "default": 200000,
+          "maximum": 200000,
+          "minimum": 1,
+          "title": "Max Pieces",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rule"
+      ],
+      "title": "FramingSpec",
+      "type": "object"
+    },
+    "GroupRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "message_group",
+            "opcode_candidate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "key_fields": {
+          "items": {
+            "$ref": "#/$defs/IntegerLocation"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Key Fields",
+          "type": "array"
+        },
+        "masked_ranges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 128,
+          "title": "Masked Ranges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "key_fields"
+      ],
+      "title": "GroupRule",
+      "type": "object"
+    },
+    "IntegerLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "width": {
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "endian": {
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "signed": {
+          "default": false,
+          "title": "Signed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "offset",
+        "width",
+        "endian"
+      ],
+      "title": "IntegerLocation",
+      "type": "object"
+    },
+    "LengthRelationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "length_relation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "target": {
+          "enum": [
+            "message",
+            "payload",
+            "array"
+          ],
+          "title": "Target",
+          "type": "string"
+        },
+        "target_offset": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Target Offset",
+          "type": "integer"
+        },
+        "multiplier": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier",
+          "type": "integer"
+        },
+        "adjustment": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "target"
+      ],
+      "title": "LengthRelationRule",
+      "type": "object"
+    },
+    "LengthRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "length",
+          "title": "Kind",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 65536,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "width": {
+          "default": 2,
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "endian": {
+          "default": "big",
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "multiplier": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier",
+          "type": "integer"
+        },
+        "adjustment": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "LengthRule",
+      "type": "object"
+    },
+    "ManualRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "manual",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ranges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 10000,
+          "title": "Ranges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "ManualRule",
+      "type": "object"
+    },
+    "MappingRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "parameter_mapping",
+          "title": "Kind",
+          "type": "string"
+        },
+        "parameter_path": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Parameter Path",
+          "type": "array"
+        },
+        "encoding": {
+          "enum": [
+            "ascii",
+            "utf-8",
+            "utf-16le",
+            "utf-16be",
+            "decimal",
+            "integer"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "base64": {
+          "default": "none",
+          "enum": [
+            "none",
+            "standard",
+            "urlsafe"
+          ],
+          "title": "Base64",
+          "type": "string"
+        },
+        "padding": {
+          "default": true,
+          "title": "Padding",
+          "type": "boolean"
+        },
+        "bom": {
+          "default": false,
+          "title": "Bom",
+          "type": "boolean"
+        },
+        "integer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntegerLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "parameter_path",
+        "encoding"
+      ],
+      "title": "MappingRule",
+      "type": "object"
+    },
+    "MarkerRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "markers",
+          "title": "Kind",
+          "type": "string"
+        },
+        "start_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "Start Hex",
+          "type": "string"
+        },
+        "end_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "End Hex",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "start_hex",
+        "end_hex"
+      ],
+      "title": "MarkerRule",
+      "type": "object"
+    },
+    "ProfileRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "byte_profile",
+            "entropy_region"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "measurement": {
+          "enum": [
+            "within_block",
+            "sliding_window",
+            "across_messages"
+          ],
+          "title": "Measurement",
+          "type": "string"
+        },
+        "window_bytes": {
+          "default": 64,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Window Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "measurement"
+      ],
+      "title": "ProfileRule",
+      "type": "object"
+    },
+    "RegionRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "constant_region",
+            "start_marker",
+            "end_marker",
+            "fixed_width_region",
+            "session_stable_region",
+            "session_token_candidate",
+            "copied_value",
+            "field_boundary_candidate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "relative_to": {
+          "default": "message_start",
+          "enum": [
+            "message_start",
+            "message_end"
+          ],
+          "title": "Relative To",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "length": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Length",
+          "type": "integer"
+        },
+        "value_hex": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^(?:[0-9a-fA-F]{2})+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Hex"
+        },
+        "relation_scope": {
+          "default": "message_group",
+          "enum": [
+            "message_group",
+            "direction",
+            "session"
+          ],
+          "title": "Relation Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "offset",
+        "length"
+      ],
+      "title": "RegionRule",
+      "type": "object"
+    },
+    "TimestampRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "timestamp_candidate",
+            "relative_clock_candidate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/IntegerLocation"
+        },
+        "unit": {
+          "enum": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "epoch": {
+          "enum": [
+            "unix",
+            "session_relative",
+            "unknown"
+          ],
+          "title": "Epoch",
+          "type": "string"
+        },
+        "clock_offset_ns": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Clock Offset Ns",
+          "type": "string"
+        },
+        "tolerance_ns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tolerance Ns",
+          "type": "integer"
+        },
+        "drift_ppm": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": -1000000,
+          "title": "Drift Ppm",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "unit",
+        "epoch",
+        "tolerance_ns"
+      ],
+      "title": "TimestampRule",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "byte_profile": "#/$defs/ProfileRule",
+      "checksum_relation": "#/$defs/ChecksumRule",
+      "constant_region": "#/$defs/RegionRule",
+      "copied_value": "#/$defs/RegionRule",
+      "counter": "#/$defs/CounterRule",
+      "end_marker": "#/$defs/RegionRule",
+      "entropy_region": "#/$defs/ProfileRule",
+      "event_association": "#/$defs/EventRule",
+      "field_boundary_candidate": "#/$defs/RegionRule",
+      "field_delimiter": "#/$defs/DelimiterRule",
+      "fixed_framing": "#/$defs/FramingCandidateRule",
+      "fixed_width_region": "#/$defs/RegionRule",
+      "identifier_relation": "#/$defs/CounterRule",
+      "length_framing": "#/$defs/FramingCandidateRule",
+      "length_relation": "#/$defs/LengthRelationRule",
+      "marker_framing": "#/$defs/FramingCandidateRule",
+      "message_group": "#/$defs/GroupRule",
+      "opcode_candidate": "#/$defs/GroupRule",
+      "parameter_mapping": "#/$defs/MappingRule",
+      "relative_clock_candidate": "#/$defs/TimestampRule",
+      "session_stable_region": "#/$defs/RegionRule",
+      "session_token_candidate": "#/$defs/RegionRule",
+      "start_marker": "#/$defs/RegionRule",
+      "timestamp_candidate": "#/$defs/TimestampRule"
+    },
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/FramingCandidateRule"
+    },
+    {
+      "$ref": "#/$defs/RegionRule"
+    },
+    {
+      "$ref": "#/$defs/LengthRelationRule"
+    },
+    {
+      "$ref": "#/$defs/DelimiterRule"
+    },
+    {
+      "$ref": "#/$defs/GroupRule"
+    },
+    {
+      "$ref": "#/$defs/CounterRule"
+    },
+    {
+      "$ref": "#/$defs/ChecksumRule"
+    },
+    {
+      "$ref": "#/$defs/TimestampRule"
+    },
+    {
+      "$ref": "#/$defs/ProfileRule"
+    },
+    {
+      "$ref": "#/$defs/EventRule"
+    },
+    {
+      "$ref": "#/$defs/MappingRule"
+    }
+  ]
+}

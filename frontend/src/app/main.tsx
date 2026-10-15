@@ -1,22 +1,32 @@
 import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { Activity, Network, ArrowLeft } from 'lucide-react'
 import { Projects } from '@/features/investigation/Projects'
 import { JobsPanel } from '@/features/jobs/JobsPanel'
-import { request, type Health } from '@/shared/api'
+import { JobStatus } from '@/features/investigation/Common'
+import { request, terminal, type Health, type Job } from '@/shared/api'
+import { useSelection } from '@/shared/store'
+import { WorkspaceScreen } from '@/shared/WorkspaceScreen'
+import { Button } from '@/shared/ui/button'
 import './styles.css'
 
 const client = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 1000 } } })
 function App() {
-  const [tab, setTab] = useState<'research' | 'jobs'>('research')
+  const [jobs, setJobs] = useState(false)
+  const jobId = useSelection(s => s.jobId)
   const health = useQuery({ queryKey: ['health'], queryFn: () => request<Health>('/health'), refetchInterval: 5000 })
-  return <main className="mx-auto max-w-[1600px] px-5 py-6">
-    <header className="mb-10 flex flex-wrap items-center justify-between gap-5 border-b pb-7">
-      <div className="flex items-center gap-3"><svg className="text-primary shrink-0" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="m17.425 3.92l-3.76 5.58c-.257.385.244.835.604.52l3.28-3.214c.095-.083.236-.026.236.115v10.062c0 .135-.18.192-.256.096L6.754 3.681a1.85 1.85 0 0 0-1.459-.68C4.138 3 3 3.584 3 4.922V19.07a1.922 1.922 0 0 0 3.555 1.003l3.754-5.58c.257-.385-.238-.835-.598-.52l-3.26 3.279c-.096.083-.237.026-.237-.117V7.101c0-.14.18-.192.257-.096L17.226 20.32c.36.444.9.681 1.46.681C19.848 21 21 20.421 21 19.078V4.93a1.93 1.93 0 0 0-3.575-1.003z" /></svg><div><h1 className="text-2xl font-semibold tracking-tight">Protocol Lab</h1><p className="text-sm text-muted-foreground">Лаборатория исследования TCP-протоколов</p></div></div>
-      <span role="status" className="rounded-full border bg-card px-3 py-1 text-sm">{health.isError ? 'API недоступен' : health.data ? `API подключён · v${health.data.version}` : 'Подключение к API…'}</span>
+  const selectedJob = useQuery({ queryKey: ['job', jobId], queryFn: () => request<Job>(`/jobs/${jobId}`), enabled: !!jobId,
+    refetchInterval: query => query.state.data && terminal(query.state.data.status) ? false : 400 })
+  return <div className="app-shell">
+    <a className="skip-link" href="#project-content" onClick={event => { event.preventDefault(); document.getElementById('project-content')?.focus() }}>Перейти к содержимому</a>
+    <header className="app-header">
+      <div className="app-brand"><Network size={24} aria-hidden="true" /><h1>Protocol Lab</h1><span className="muted">Исследование TCP-протоколов</span></div>
+      <div className="app-header-actions"><span role="status" className={`api-status ${health.isError ? 'text-destructive' : ''}`}>{health.isError ? 'API недоступен' : health.data ? `API подключён · v${health.data.version}` : 'Подключение к API…'}</span><Button size="sm" variant={jobs ? 'default' : 'outline'} aria-pressed={jobs} onClick={() => setJobs(!jobs)}>{jobs ? <ArrowLeft size={15} aria-hidden="true" /> : <Activity size={15} aria-hidden="true" />}{jobs ? 'Вернуться к проекту' : 'Задачи'}</Button></div>
     </header>
-    <nav className="app-tabs" aria-label="Разделы приложения"><button aria-pressed={tab === 'research'} onClick={() => setTab('research')}>Исследование</button><button aria-pressed={tab === 'jobs'} onClick={() => setTab('jobs')}>Задачи</button><span>Этап 10 · Надёжность и воспроизводимость</span></nav>
-    {tab === 'research' ? <Projects /> : <JobsPanel />}
-  </main>
+    <WorkspaceScreen active={!jobs} className="app-content"><Projects /></WorkspaceScreen>
+    <WorkspaceScreen active={jobs} className="jobs-screen" label="Фоновые задачи"><JobsPanel /></WorkspaceScreen>
+    <footer className="app-statusbar"><span className="muted text-xs">Локальная рабочая область</span>{selectedJob.data ? <JobStatus job={selectedJob.data} /> : <span className="muted text-xs">Выберите задачу для просмотра прогресса</span>}{selectedJob.error && <span role="alert" className="text-destructive text-xs">Не удалось обновить состояние задачи: {selectedJob.error.message}</span>}</footer>
+  </div>
 }
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={client}><App /></QueryClientProvider></React.StrictMode>)

@@ -1,0 +1,19 @@
+{
+  "profile": "inference-a0-metadata-only",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "python": "3.12.15",
+  "units": 100000,
+  "captures": 2,
+  "sessions": 20,
+  "stream_directions": 40,
+  "payload_files_read": 0,
+  "metadata_preparation_seconds": 0.638147,
+  "sampling_seconds": 0.748406,
+  "repeat_seconds": 0.843633,
+  "peak_rss_mib": 255.234,
+  "selected_unique_units": 5000,
+  "holdout_units": 50000,
+  "unselected_unique_units": 45000,
+  "deterministic": true,
+  "sample_sha256": "1293ae17b638e4a506ec01864763d5f1b06b0969a0a0136805ad630aa98456a4"
+}

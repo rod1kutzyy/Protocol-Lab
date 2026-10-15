@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from protocol_lab import __version__
 from protocol_lab.api.framing import router as framing_router
+from protocol_lab.api.inference import router as inference_router
 from protocol_lab.api.interpretations import router as interpretations_router
 from protocol_lab.api.investigation import router as investigation_router
 from protocol_lab.api.limits import UploadLimitMiddleware
@@ -70,6 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(framing_router)
     app.include_router(interpretations_router)
     app.include_router(validation_router)
+    app.include_router(inference_router)
 
     def manager(request: Request) -> JobManager:
         return request.app.state.jobs

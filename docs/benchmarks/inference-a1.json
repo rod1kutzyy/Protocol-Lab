@@ -1,0 +1,56 @@
+{
+  "profile": "A1 tuned local file adapter baseline; no PostgreSQL/browser/holdout",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "python": "3.12.15",
+  "messages": 10000,
+  "stream_bytes": 748449,
+  "capture_bytes": 786133,
+  "elapsed_seconds": 6.135531,
+  "peak_rss_mib": 719.719,
+  "output_bytes": 62945748,
+  "candidate_count": 15,
+  "search_complete": false,
+  "trials": 5000,
+  "correct_length_in_first_five": true,
+  "semantic_sha256": "3f28b4861bd4702c32d6f766105cec7bfb414c5fe92a8714e961c09bd7d4802b",
+  "spec": {
+    "corpus_version_id": "a0dac4f7-79a2-5a90-b620-32fc0c94810f",
+    "detectors": [
+      {
+        "family": "framing"
+      },
+      {
+        "family": "structure"
+      },
+      {
+        "family": "entropy"
+      }
+    ],
+    "split": {
+      "discovery_ids": [
+        "d55573c3-4684-558e-be0a-a5fc5a4861fd"
+      ],
+      "holdout_unavailable_reason": "Measured discovery only"
+    },
+    "budget": {
+      "max_header_bytes": 8,
+      "max_rule_trials": 5000
+    },
+    "search": {
+      "fixed_size_max": 256,
+      "adjustment_min": -8,
+      "adjustment_max": 8,
+      "marker_max_bytes": 4,
+      "max_marker_patterns": 8
+    }
+  },
+  "measured_stages": [
+    "index",
+    "TCP",
+    "proposals",
+    "shared framing",
+    "regions/profile",
+    "file publication"
+  ]
+}

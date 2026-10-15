@@ -1,3 +1,4 @@
+import { useWorkspaceState } from '@/shared/WorkspaceState'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueries } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -8,18 +9,21 @@ import { ascii, byteKey, cells, json, loadBytes, token, useJob, type Stream } fr
 import { ErrorMessage, JobStatus } from './Common'
 import { SourcesPanel } from './SourcesPanel'
 import { ComparePanel } from './ComparePanel'
-import { FramingPanel } from './FramingPanel'
+import { WorkspaceScreen, useScreenVisible } from '@/shared/WorkspaceScreen'
 
 const PAGE = 4096
 const WINDOW = 65536
-export function StreamPanel({ stream, projectId }: { stream: Stream; projectId: string }) {
-  const { range, selectRange, pin } = useSelection()
-  const [windowStart, setWindowStart] = useState(0)
-  const [jump, setJump] = useState('0')
-  const [start, setStart] = useState('0'), [end, setEnd] = useState(String(Math.min(stream.extent, 16)))
+export function StreamPanel({ stream, projectId, revealRequest }: { stream: Stream; projectId: string; revealRequest: number }) {
+  const visible = useScreenVisible()
+  const handledReveal = useRef(0)
+  const { range, selectRange, pin, reference } = useSelection()
+  const [comparing, setComparing] = useWorkspaceState(`stream:${stream.id}:comparing`, false)
+  const [windowStart, setWindowStart] = useWorkspaceState(`stream:${stream.id}:windowStart`, 0)
+  const [jump, setJump] = useWorkspaceState(`stream:${stream.id}:jump`, '0')
+  const [start, setStart] = useWorkspaceState(`stream:${stream.id}:start`, '0'), [end, setEnd] = useWorkspaceState(`stream:${stream.id}:end`, String(Math.min(stream.extent, 16)))
   const [error, setError] = useState<Error | null>(null)
-  const [pattern, setPattern] = useState(''), [searchId, setSearchId] = useState<string | null>(null)
-  const [searchResult, setSearchResult] = useState<{ matches: number[]; complete: boolean; next_offset: number | null; skipped_bytes: number; pattern_hex: string } | null>(null)
+  const [pattern, setPattern] = useWorkspaceState(`stream:${stream.id}:pattern`, ''), [searchId, setSearchId] = useWorkspaceState<string | null>(`stream:${stream.id}:searchId`, null)
+  const [searchResult, setSearchResult] = useWorkspaceState<{ matches: number[]; complete: boolean; next_offset: number | null; skipped_bytes: number; pattern_hex: string } | null>(`stream:${stream.id}:searchResult`, null)
   const scroll = useRef<HTMLDivElement>(null)
   const rows = useVirtualizer({ count: Math.ceil(Math.min(WINDOW, stream.extent - windowStart) / 16), getScrollElement: () => scroll.current, estimateSize: () => 28, overscan: 8 })
   const virtual = rows.getVirtualItems()
@@ -29,6 +33,15 @@ export function StreamPanel({ stream, projectId }: { stream: Stream; projectId: 
   const active = range?.streamId === stream.id ? range : null
   function showWindow(offset: number) { const n = Math.max(0, Math.min(Math.floor(offset / 16) * 16, Math.max(0, stream.extent - 1))); setWindowStart(n); setJump(String(n)); scroll.current?.scrollTo({ top: 0 }) }
   useEffect(() => { if (active) { setStart(String(active.start)); setEnd(String(active.end)); if (active.start < windowStart || active.start >= windowStart + WINDOW) showWindow(active.start); else { const index = Math.floor((active.start-windowStart)/16), top = index*28; if (scroll.current && (top < scroll.current.scrollTop || top >= scroll.current.scrollTop+scroll.current.clientHeight)) rows.scrollToIndex(index, { align: 'start' }) } } }, [active?.start, active?.end])
+  useEffect(() => {
+    if (!visible || !active || !revealRequest || handledReveal.current === revealRequest) return
+    const frame = requestAnimationFrame(() => {
+      handledReveal.current = revealRequest
+      showWindow(active.start)
+      scroll.current?.closest('[aria-label="Рабочая область исследования"]')?.scrollTo({ top: 0 })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [visible, revealRequest, active?.start, active?.end])
   function select(left: number, right: number, reveal = false) {
     if (!Number.isInteger(left) || !Number.isInteger(right) || left < 0 || right > stream.extent || right <= left) { setError(new Error('Диапазон: 0 ≤ начало < конец ≤ размер потока')); return }
     selectRange({ streamId: stream.id, version: stream.reconstruction_version, start: left, end: right }); setError(null); if (reveal) showWindow(left)
@@ -36,7 +49,8 @@ export function StreamPanel({ stream, projectId }: { stream: Stream; projectId: 
   const searchJob = useJob(searchId, job => { if (job.status === 'succeeded') setSearchResult(job.result as typeof searchResult) })
   const searching = !!searchId && (!searchJob.data || !['succeeded', 'failed', 'cancelled'].includes(searchJob.data.status))
   const search = useMutation({ mutationFn: ({ offset, pattern: input }: { offset: number; pattern: string }) => { const normalized = input.replace(/\s/g, ''); if (!/^(?:[0-9a-fA-F]{2}){1,256}$/.test(normalized)) throw new Error('HEX-последовательность: от 1 до 256 полных байтов'); return request<Job>(`/streams/${stream.id}/search`, json({ pattern_hex: normalized, start: offset })) }, onSuccess: job => setSearchId(job.id) })
-  return <div className="stack">
+  return <div className="stack stream-workspace">
+    <div className="research-columns">
     <section className="panel stack" id={`stream-hex-${stream.id}`} aria-labelledby="hex-title">
       <div className="workspace-title"><h3 id="hex-title">HEX / ASCII</h3><small>{stream.extent} позиций · {stream.reconstruction_version}</small></div>
       <p className="muted text-xs">Клик — начало выделения, Shift+клик — конец. Диапазоны [начало, конец). ?? — конфликт, — — пропуск/усечение, … — загрузка.</p>
@@ -55,8 +69,13 @@ export function StreamPanel({ stream, projectId }: { stream: Stream; projectId: 
       <ErrorMessage error={search.error ?? searchJob.error} /><JobStatus job={searchJob.data} />
       {searchResult && <div className="notice"><p>Совпадений на странице: {searchResult.matches.length}. Пропущено неопределенных позиций: {searchResult.skipped_bytes}. {searchResult.complete ? 'Поиск завершён.' : 'Есть следующая страница результатов.'}</p><div className="matches">{searchResult.matches.map(offset => <Button size="sm" variant="outline" key={offset} onClick={() => select(offset, offset+searchResult.pattern_hex.length/2, true)}>Смещение {offset}</Button>)}</div>{searchResult.next_offset != null && <Button size="sm" disabled={searching} onClick={() => { setPattern(searchResult.pattern_hex); search.mutate({ offset: searchResult.next_offset!, pattern: searchResult.pattern_hex }) }}>Следующие совпадения</Button>}</div>}
     </section>
-    <FramingPanel stream={stream} />
-    {active && <SourcesPanel key={`${active.streamId}:${active.start}:${active.end}`} range={active} projectId={projectId} />}
-    <ComparePanel current={active} />
+    <aside className="range-inspector" aria-label="Инспектор диапазона">
+      {active ? <SourcesPanel key={`${active.streamId}:${active.start}:${active.end}`} range={active} projectId={projectId} /> : <div className="panel stack"><h3>Инспектор диапазона</h3><p className="muted">Выделите байты, чтобы увидеть исходные пакеты и добавить наблюдение. Пропуски и конфликты остаются видимыми.</p></div>}
+    </aside>
+    </div>
+    <div className="form-row"><Button size="sm" variant="outline" aria-expanded={comparing} onClick={() => setComparing(!comparing)}>{comparing ? 'Скрыть сравнение' : 'Сравнить диапазоны'}</Button>{reference && <span className="muted text-xs">Опорный: {reference.streamId.slice(0, 8)} [{reference.start}, {reference.end})</span>}</div>
+    <WorkspaceScreen active={comparing} className="tool-screen" label="Сравнение диапазонов">
+      {reference ? <ComparePanel current={active} /> : <p className="notice">Выделите диапазон и нажмите «Запомнить для сравнения», затем выберите второй диапазон в этом или другом потоке.</p>}
+    </WorkspaceScreen>
   </div>
 }

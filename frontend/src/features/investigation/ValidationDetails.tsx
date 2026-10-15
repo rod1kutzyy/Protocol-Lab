@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { components } from '@/shared/api-types'
 import { Button } from '@/shared/ui/button'
+import { TechnicalLimitNotice } from './Common'
 export type ValidationItem = components['schemas']['ValidationItem']
 export const validationStatuses = { passed: 'Passed · правила выполнены', failed: 'Failed · нарушено правило', unknown: 'Unknown · неизвестно', ambiguous: 'Ambiguous · неоднозначно', not_applicable: 'Not applicable · не применялось' }
 export function ValidationDetails({ item, runId, navigate }: { item: ValidationItem; runId: string; navigate: (item: ValidationItem, anchor?: components['schemas']['StreamRange']) => void }) {
@@ -9,6 +10,7 @@ export function ValidationDetails({ item, runId, navigate }: { item: ValidationI
   const fields = useVirtualizer({ count: item.fields?.length ?? 0, getScrollElement: () => fieldScroll.current, estimateSize: () => 64, overscan: 4 })
   const unknown = useVirtualizer({ count: item.unknown_ranges?.length ?? 0, getScrollElement: () => unknownScroll.current, estimateSize: () => 64, overscan: 4 })
   return <section className="stack" aria-label="Контрпример и исходные байты"><h4>Результат {item.id.slice(0, 8)} · запуск {runId.slice(0, 8)}</h4><p className="notice">{validationStatuses[item.status]} · {item.diagnostic}<br />Запись {item.capture_id.slice(0, 8)} · {item.kind}. Значения — результат исполнения выбранной версии, а не доказанный смысл полей.</p>
+    <TechnicalLimitNotice limit={item.technical_limit} />
     {item.kind === 'reconstruction_diagnostic' && <p className="notice">Направление {item.direction === 'a_to_b' ? 'A → B' : 'B → A'} не восстановлено. Размер потока и диапазон байтов неизвестны; причина сохранена в диагностике соединения.</p>}
     <Button size="sm" variant="outline" onClick={() => navigate(item, item.anchor ?? undefined)}>{item.anchor ? 'Открыть диапазон → bytes и пакеты' : item.stream_id ? 'Открыть пустое направление' : item.session_id ? 'Открыть соединение и диагностику' : 'Открыть исходную запись'}</Button>
     <h4>Извлечённые значения</h4><p className="muted text-xs">Целые передаются точными строками. HEX-предпросмотр — до 64 байтов, полный диапазон доступен по клику.</p>

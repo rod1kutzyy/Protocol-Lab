@@ -230,3 +230,50 @@ class ValidationResultRow(Base):
     status: Mapped[str] = mapped_column(String(20), index=True)
     values_sha256: Mapped[str] = mapped_column(String(64))
     metadata_json: Mapped[dict] = mapped_column(JSONB)
+
+
+class InferenceRunRow(Base):
+    __tablename__ = "inference_runs"
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"), index=True)
+    corpus_version_id: Mapped[UUID] = mapped_column(ForeignKey("corpus_versions.id"))
+    parent_id: Mapped[UUID | None] = mapped_column(ForeignKey("inference_runs.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    relative_path: Mapped[str] = mapped_column(String(150))
+    sha256: Mapped[str] = mapped_column(String(64))
+    metadata_json: Mapped[dict] = mapped_column(JSONB)
+
+
+class InferenceCandidateRow(Base):
+    __tablename__ = "inference_candidates"
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("inference_runs.id"), index=True)
+    rank: Mapped[int] = mapped_column(Integer)
+    family: Mapped[str] = mapped_column(String(30), index=True)
+    metadata_json: Mapped[dict] = mapped_column(JSONB)
+
+
+class InferenceEvaluationRow(Base):
+    __tablename__ = "inference_evaluations"
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("inference_candidates.id"), index=True)
+    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"), index=True)
+    corpus_version_id: Mapped[UUID] = mapped_column(ForeignKey("corpus_versions.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    relative_path: Mapped[str] = mapped_column(String(150))
+    sha256: Mapped[str] = mapped_column(String(64))
+    metadata_json: Mapped[dict] = mapped_column(JSONB)
+
+
+class InferenceEvidenceRow(Base):
+    __tablename__ = "inference_evidence"
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("inference_runs.id"), index=True)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("inference_candidates.id"), index=True)
+    evaluation_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("inference_evaluations.id"), index=True
+    )
+    ordinal: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    file_offset: Mapped[int] = mapped_column(BigInteger)
+    length: Mapped[int] = mapped_column(Integer)

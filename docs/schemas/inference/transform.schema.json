@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:inference-contracts-1:transform",
+  "$defs": {
+    "ByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "ByteRange",
+      "type": "object"
+    },
+    "StreamRange": {
+      "additionalProperties": false,
+      "properties": {
+        "stream_id": {
+          "format": "uuid",
+          "title": "Stream Id",
+          "type": "string"
+        },
+        "reconstruction_version": {
+          "title": "Reconstruction Version",
+          "type": "string"
+        },
+        "byte_range": {
+          "$ref": "#/$defs/ByteRange"
+        }
+      },
+      "required": [
+        "stream_id",
+        "reconstruction_version",
+        "byte_range"
+      ],
+      "title": "StreamRange",
+      "type": "object"
+    },
+    "TransformPart": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ByteRange"
+        },
+        "decoded": {
+          "$ref": "#/$defs/ByteRange"
+        }
+      },
+      "required": [
+        "source",
+        "decoded"
+      ],
+      "title": "TransformPart",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Many-to-many encoded/decoded provenance is distinct from equal-length SourceRange.",
+  "properties": {
+    "anchor": {
+      "$ref": "#/$defs/StreamRange"
+    },
+    "transform": {
+      "enum": [
+        "base64_standard",
+        "base64_urlsafe"
+      ],
+      "title": "Transform",
+      "type": "string"
+    },
+    "version": {
+      "const": "transform-1",
+      "default": "transform-1",
+      "title": "Version",
+      "type": "string"
+    },
+    "decoded_length": {
+      "maximum": 9007199254740991,
+      "minimum": 1,
+      "title": "Decoded Length",
+      "type": "integer"
+    },
+    "parts": {
+      "items": {
+        "$ref": "#/$defs/TransformPart"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Parts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "anchor",
+    "transform",
+    "decoded_length",
+    "parts"
+  ],
+  "title": "TransformMapping",
+  "type": "object"
+}

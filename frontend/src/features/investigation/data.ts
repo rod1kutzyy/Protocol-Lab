@@ -35,7 +35,7 @@ export function useJob(id: string | null, done: (job: Job) => void) {
   useEffect(() => {
     if (query.data && terminal(query.data.status) && query.data.id !== seen.current) {
       seen.current = query.data.id; callback.current(query.data)
-      for (const key of ['captures', 'sessions', 'logs', 'actions', 'links', 'jobs', 'framing-runs', 'interpretation-runs', 'validation-runs', 'validation-currentness']) void client.invalidateQueries({ queryKey: [key] })
+      for (const key of ['captures', 'sessions', 'logs', 'actions', 'links', 'jobs', 'framing-runs', 'interpretation-runs', 'validation-runs', 'validation-currentness', 'inference-runs', 'inference-evaluations', 'inference-currentness']) void client.invalidateQueries({ queryKey: [key] })
     }
   }, [query.data, client])
   return query

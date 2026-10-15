@@ -11,9 +11,10 @@ from uuid import UUID, uuid5
 from pydantic import Field, model_validator
 
 from protocol_lab.capture.index import WorkCancelled
+from protocol_lab.domain.diagnostics import TechnicalLimit, technical_limit
 from protocol_lab.domain.models import ByteRange, Record, StreamRange
 
-VERSION = "framing-v1"
+VERSION = "framing-v2"
 CHUNK = 65536
 
 
@@ -81,6 +82,7 @@ class Piece(Record):
     boundary_status: Literal["known", "uncertain"]
     data_status: Literal["known", "incomplete", "ambiguous", "mixed"]
     diagnostic: str
+    technical_limit: TechnicalLimit | None = None
 
 
 class FramingResult(Record):
@@ -183,7 +185,7 @@ def frame(
             raise WorkCancelled
         progress(position, source.extent)
 
-    def append(left, right, kind, diagnostic=""):
+    def append(left, right, kind, diagnostic="", limit=None):
         if right <= left:
             return
         check(left)
@@ -202,6 +204,7 @@ def frame(
                 boundary_status="known" if kind == "message" else "uncertain",
                 data_status=source.status(left, right),
                 diagnostic=diagnostic,
+                technical_limit=limit,
             )
         )
 
@@ -237,6 +240,7 @@ def frame(
         while cursor < source.extent:
             check(cursor)
             reason = "incomplete_length_header"
+            limit = None
             if cursor + header_end <= source.extent:
                 header = source.read(cursor + rule.offset, rule.width)
                 if header is None:
@@ -244,13 +248,16 @@ def frame(
                 else:
                     total = int.from_bytes(header, rule.endian) * rule.multiplier + rule.adjustment
                     reason = "invalid_length_no_resynchronization"
-                    if total >= header_end and 0 < total <= spec.max_message_bytes:
+                    if total >= header_end and total > spec.max_message_bytes:
+                        reason = "max_message_bytes_exceeded_no_resynchronization"
+                        limit = technical_limit("max_message_bytes", total, spec.max_message_bytes)
+                    elif total >= header_end and 0 < total:
                         if cursor + total <= source.extent:
                             append(cursor, cursor + total, "message", "length_boundary_rule")
                             cursor += total
                             continue
                         reason = "incomplete_length_message"
-            append(cursor, source.extent, "leftover", reason)
+            append(cursor, source.extent, "leftover", reason, limit)
             break
     else:
         start_marker, end_marker = bytes.fromhex(rule.start_hex), bytes.fromhex(rule.end_hex)
@@ -268,8 +275,20 @@ def frame(
                 stop = min(right, begin + spec.max_message_bytes)
                 end = find(end_marker, begin + len(start_marker), stop)
                 if end is None:
-                    reason = "end_marker_not_found_or_limit_exceeded"
-                    append(begin, right, "leftover", reason)
+                    limit = None
+                    if stop < right:
+                        reason = "end_marker_search_limit_exceeded"
+                        limit = technical_limit(
+                            "max_message_bytes",
+                            spec.max_message_bytes + 1,
+                            spec.max_message_bytes,
+                            lower_bound=True,
+                        )
+                    elif right < source.extent:
+                        reason = "end_marker_search_interrupted_by_unknown_bytes"
+                    else:
+                        reason = "end_marker_not_found_before_stream_end"
+                    append(begin, right, "leftover", reason, limit)
                     cursor = right
                     break
                 cursor = end + len(end_marker)

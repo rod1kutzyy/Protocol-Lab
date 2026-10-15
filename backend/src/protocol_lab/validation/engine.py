@@ -182,6 +182,7 @@ def validate_stream(
     for piece in framed.pieces:
         if cancelled():
             raise WorkCancelled
+        limit = piece.technical_limit
         try:
             result = parse_message(model, parser, piece, source, cancelled)
             fields, unknown, status, diagnostic = (
@@ -190,6 +191,7 @@ def validate_stream(
                 result.status,
                 result.diagnostic,
             )
+            limit = result.technical_limit
             if piece.kind == "leftover":
                 status = "ambiguous" if piece.data_status in {"ambiguous", "mixed"} else "unknown"
                 diagnostic = f"unframed:{piece.diagnostic}"
@@ -209,6 +211,7 @@ def validate_stream(
             diagnostic=diagnostic,
             fields=fields,
             unknown_ranges=unknown,
+            technical_limit=limit,
         )
 
 
@@ -308,7 +311,7 @@ def compare(left, right):
                 else "values"
                 if a.values_sha256 != b.values_sha256
                 else "diagnostic"
-                if a.diagnostic != b.diagnostic
+                if a.diagnostic != b.diagnostic or a.technical_limit != b.technical_limit
                 else None
             )
             if change:

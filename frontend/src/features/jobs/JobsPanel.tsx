@@ -81,7 +81,7 @@ export function JobsPanel() {
     </div>
     <details className="rounded-lg border bg-card p-5" onToggle={(event) => setShowJson(event.currentTarget.open)}>
       <summary className="cursor-pointer font-medium">JSON состояния задачи</summary>
-      <p className="my-3 text-sm text-muted-foreground">Диагностический просмотр. Редактор протокольной модели появится на этапе 7.</p>
+      <p className="my-3 text-sm text-muted-foreground">Диагностический просмотр состояния выбранной задачи.</p>
       {showJson && <Suspense fallback={<p>Загрузка локального редактора…</p>}><JsonPreview value={JSON.stringify(job ?? {}, null, 2)} /></Suspense>}
     </details>
   </section>

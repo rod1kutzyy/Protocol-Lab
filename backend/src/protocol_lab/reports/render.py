@@ -16,6 +16,7 @@ def markdown(value):
 def render_report(directory, output):
     project = None
     captures, observations, hypotheses, models, corpora, runs = [], [], [], [], [], []
+    inference_runs, inference_candidates, inference_evaluations = [], [], []
     examples = defaultdict(list)
     example_counts = Counter()
     for name, row in rows(directory):
@@ -34,6 +35,12 @@ def render_report(directory, output):
             corpora.append(data)
         elif name == "validation_runs":
             runs.append(data)
+        elif name == "inference_runs":
+            inference_runs.append(data)
+        elif name == "inference_candidates":
+            inference_candidates.append(data)
+        elif name == "inference_evaluations":
+            inference_evaluations.append(data)
         elif name == "validation_results":
             key = (str(row["run_id"]), data["status"])
             example_counts[key] += 1
@@ -83,5 +90,8 @@ def render_report(directory, output):
             runs=runs,
             examples=examples,
             example_counts=example_counts,
+            inference_runs=inference_runs,
+            inference_candidates=inference_candidates,
+            inference_evaluations=inference_evaluations,
         )
     )

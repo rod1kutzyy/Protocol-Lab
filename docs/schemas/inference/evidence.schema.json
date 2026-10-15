@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:inference-contracts-1:evidence",
+  "$defs": {
+    "ByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "ByteRange",
+      "type": "object"
+    },
+    "SourceRange": {
+      "additionalProperties": false,
+      "properties": {
+        "capture_id": {
+          "format": "uuid",
+          "title": "Capture Id",
+          "type": "string"
+        },
+        "packet_id": {
+          "format": "uuid",
+          "title": "Packet Id",
+          "type": "string"
+        },
+        "packet_payload_range": {
+          "$ref": "#/$defs/ByteRange"
+        },
+        "stream": {
+          "$ref": "#/$defs/StreamRange"
+        }
+      },
+      "required": [
+        "capture_id",
+        "packet_id",
+        "packet_payload_range",
+        "stream"
+      ],
+      "title": "SourceRange",
+      "type": "object"
+    },
+    "StreamRange": {
+      "additionalProperties": false,
+      "properties": {
+        "stream_id": {
+          "format": "uuid",
+          "title": "Stream Id",
+          "type": "string"
+        },
+        "reconstruction_version": {
+          "title": "Reconstruction Version",
+          "type": "string"
+        },
+        "byte_range": {
+          "$ref": "#/$defs/ByteRange"
+        }
+      },
+      "required": [
+        "stream_id",
+        "reconstruction_version",
+        "byte_range"
+      ],
+      "title": "StreamRange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "unknown",
+        "ambiguous",
+        "not_applicable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "anchor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StreamRange"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sources": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SourceRange"
+      },
+      "maxItems": 1000,
+      "title": "Sources",
+      "type": "array"
+    },
+    "event_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Event Id"
+    },
+    "diagnostic": {
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Diagnostic",
+      "type": "string"
+    },
+    "preview_hex": {
+      "default": "",
+      "maxLength": 128,
+      "pattern": "^(?:[0-9a-fA-F]{2})*$",
+      "title": "Preview Hex",
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "status",
+    "diagnostic"
+  ],
+  "title": "CandidateEvidence",
+  "type": "object"
+}

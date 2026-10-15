@@ -864,6 +864,229 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inference/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capabilities */
+        get: operations["capabilities_api_v1_inference_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference/schemas/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schema */
+        get: operations["schema_api_v1_inference_schemas__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference/spec/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check */
+        post: operations["check_api_v1_inference_spec_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/inference-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runs */
+        get: operations["runs_api_v1_projects__project_id__inference_runs_get"];
+        put?: never;
+        /** Discover */
+        post: operations["discover_api_v1_projects__project_id__inference_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Run */
+        get: operations["run_api_v1_inference_runs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-runs/{id}/currentness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Currentness */
+        get: operations["currentness_api_v1_inference_runs__id__currentness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-runs/{id}/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candidates */
+        get: operations["candidates_api_v1_inference_runs__id__candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-candidates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candidate */
+        get: operations["candidate_api_v1_inference_candidates__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-candidates/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evidence */
+        get: operations["evidence_api_v1_inference_candidates__id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-candidates/{id}/model-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draft */
+        post: operations["draft_api_v1_inference_candidates__id__model_draft_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-candidates/{id}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluations */
+        get: operations["evaluations_api_v1_inference_candidates__id__evaluations_get"];
+        put?: never;
+        /** Evaluate Candidate */
+        post: operations["evaluate_candidate_api_v1_inference_candidates__id__evaluations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-evaluations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluation */
+        get: operations["evaluation_api_v1_inference_evaluations__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inference-evaluations/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluation Results */
+        get: operations["evaluation_results_api_v1_inference_evaluations__id__results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -1070,6 +1293,143 @@ export interface components {
             /** Sources */
             sources: components["schemas"]["Evidence"][];
         };
+        /** CandidateEvaluation */
+        CandidateEvaluation: {
+            /**
+             * Schema Version
+             * @default inference-evaluation-1
+             * @constant
+             */
+            schema_version: "inference-evaluation-1";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /** Rule Sha256 */
+            rule_sha256: string;
+            snapshot: components["schemas"]["InferenceSnapshot"];
+            metrics: components["schemas"]["InferenceMetrics"];
+            /**
+             * Independence
+             * @enum {string}
+             */
+            independence: "independent" | "exploratory" | "unverified";
+            /** Independence Reason */
+            independence_reason: string;
+        };
+        /** CandidateEvidence */
+        CandidateEvidence: {
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "failed" | "unknown" | "ambiguous" | "not_applicable";
+            anchor?: components["schemas"]["StreamRange"] | null;
+            /**
+             * Sources
+             * @default []
+             */
+            sources: components["schemas"]["SourceRange"][];
+            /** Event Id */
+            event_id?: string | null;
+            /** Diagnostic */
+            diagnostic: string;
+            /**
+             * Preview Hex
+             * @default
+             */
+            preview_hex: string;
+        };
+        /** CandidateInput */
+        CandidateInput: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Sha256 */
+            sha256: string;
+            /**
+             * Rule Schema Version
+             * @default inference-rule-1
+             * @constant
+             */
+            rule_schema_version: "inference-rule-1";
+            /** Rule */
+            rule: components["schemas"]["FramingCandidateRule"] | components["schemas"]["RegionRule"] | components["schemas"]["LengthRelationRule"] | components["schemas"]["DelimiterRule"] | components["schemas"]["GroupRule"] | components["schemas"]["CounterRule"] | components["schemas"]["ChecksumRule"] | components["schemas"]["TimestampRule"] | components["schemas"]["ProfileRule"] | components["schemas"]["EventRule"] | components["schemas"]["MappingRule"];
+        };
+        /** CandidateList */
+        CandidateList: {
+            /** Items */
+            items: components["schemas"]["CandidateSummary"][];
+            /** Total */
+            total: number;
+            /** Next Offset */
+            next_offset: number | null;
+        };
+        /** CandidateScope */
+        CandidateScope: {
+            /**
+             * Corpus Version Id
+             * Format: uuid
+             */
+            corpus_version_id: string;
+            /** Capture Ids */
+            capture_ids: string[];
+            /**
+             * Session Ids
+             * @default []
+             */
+            session_ids: string[];
+            /**
+             * Direction
+             * @default both
+             * @enum {string}
+             */
+            direction: "both" | "a_to_b" | "b_to_a";
+            /** Group Id */
+            group_id?: string | null;
+        };
+        /** CandidateSummary */
+        CandidateSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Family
+             * @enum {string}
+             */
+            family: "framing" | "structure" | "groups" | "counters" | "tokens" | "checksums" | "timestamps" | "entropy" | "events" | "data_mapping";
+            /** Kind */
+            kind: string;
+            /** Rule Sha256 */
+            rule_sha256: string;
+            metrics: components["schemas"]["InferenceMetrics"];
+            /** Rationale */
+            rationale: string;
+            /** Compiler Support */
+            compiler_support: string;
+            /** Dependency Ids */
+            dependency_ids: string[];
+        };
         /** CaptureList */
         CaptureList: {
             /** Items */
@@ -1121,6 +1481,27 @@ export interface components {
              * @default []
              */
             reconstruction_failures: components["schemas"]["ReconstructionFailure"][];
+        };
+        /** ChecksumRule */
+        ChecksumRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "checksum_relation";
+            field: components["schemas"]["IntegerLocation"];
+            /**
+             * Algorithm
+             * @enum {string}
+             */
+            algorithm: "xor8" | "sum8" | "sum16" | "internet_checksum" | "CRC-8/SMBUS" | "CRC-16/ARC" | "CRC-16/IBM-3740" | "CRC-16/IBM-SDLC" | "CRC-32/ISO-HDLC";
+            /** Covered Ranges */
+            covered_ranges: components["schemas"]["ByteRange"][];
+            /**
+             * Exclude Field
+             * @default true
+             */
+            exclude_field: boolean;
         };
         /** ClockUpdate */
         ClockUpdate: {
@@ -1204,6 +1585,37 @@ export interface components {
              */
             method: string;
         };
+        /** CounterRule */
+        CounterRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "counter" | "identifier_relation";
+            field: components["schemas"]["IntegerLocation"];
+            /**
+             * Step
+             * @default fixed
+             * @enum {string}
+             */
+            step: "fixed" | "message_length" | "payload_length";
+            /**
+             * Increment
+             * @default 1
+             */
+            increment: number;
+            /**
+             * Scope
+             * @default direction
+             * @enum {string}
+             */
+            scope: "direction" | "message_group" | "session";
+            /**
+             * Wrap
+             * @default true
+             */
+            wrap: boolean;
+        };
         /** Coverage */
         Coverage: {
             /** Counts */
@@ -1285,6 +1697,24 @@ export interface components {
              */
             latest_corpus_version_id: string;
         };
+        /** DataSplit */
+        DataSplit: {
+            /**
+             * Unit
+             * @default capture
+             * @enum {string}
+             */
+            unit: "capture" | "session";
+            /** Discovery Ids */
+            discovery_ids: string[];
+            /**
+             * Holdout Ids
+             * @default []
+             */
+            holdout_ids: string[];
+            /** Holdout Unavailable Reason */
+            holdout_unavailable_reason?: string | null;
+        };
         /** DecodeRequest */
         DecodeRequest: {
             /**
@@ -1330,7 +1760,7 @@ export interface components {
             reconstruction_version: string;
             /**
              * Engine Version
-             * @default interpretation-v1
+             * @default interpretation-v2
              */
             engine_version: string;
             /** Piece Count */
@@ -1369,6 +1799,87 @@ export interface components {
              */
             preview_truncated: boolean;
         };
+        /** DelimiterRule */
+        DelimiterRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "field_delimiter";
+            /** Delimiter Hex */
+            delimiter_hex: string;
+            /**
+             * Include Terminator
+             * @default false
+             */
+            include_terminator: boolean;
+            /**
+             * Escaping
+             * @default none
+             * @constant
+             */
+            escaping: "none";
+        };
+        /** DetectorCapability */
+        DetectorCapability: {
+            /**
+             * Family
+             * @enum {string}
+             */
+            family: "framing" | "structure" | "groups" | "counters" | "tokens" | "checksums" | "timestamps" | "entropy" | "events" | "data_mapping";
+            /**
+             * Available
+             * @default false
+             */
+            available: boolean;
+            /** Implementation Version */
+            implementation_version?: string | null;
+        };
+        /** DetectorOutcome */
+        DetectorOutcome: {
+            /**
+             * Family
+             * @enum {string}
+             */
+            family: "framing" | "structure" | "groups" | "counters" | "tokens" | "checksums" | "timestamps" | "entropy" | "events" | "data_mapping";
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "completed" | "search_limited" | "insufficient_data" | "unsupported" | "failed";
+            /** Searched Units */
+            searched_units: number;
+            /** Unsearched Units */
+            unsearched_units: number;
+            /** Diagnostic */
+            diagnostic: string;
+            /**
+             * Searched Unit
+             * @default rule_trial
+             * @enum {string}
+             */
+            searched_unit: "rule_trial" | "sample_message";
+            /**
+             * Unsearched Unit
+             * @default residual_search_space
+             * @constant
+             */
+            unsearched_unit: "residual_search_space";
+        };
+        /** DetectorRequest */
+        DetectorRequest: {
+            /**
+             * Family
+             * @enum {string}
+             */
+            family: "framing" | "structure" | "groups" | "counters" | "tokens" | "checksums" | "timestamps" | "entropy" | "events" | "data_mapping";
+            /**
+             * Contract Version
+             * @default inference-detector-1
+             * @constant
+             */
+            contract_version: "inference-detector-1";
+        };
         /** DiagnosticRequest */
         DiagnosticRequest: {
             /**
@@ -1392,6 +1903,20 @@ export interface components {
              */
             change: "added" | "removed" | "status" | "values" | "diagnostic";
         };
+        /** DraftResult */
+        DraftResult: {
+            /**
+             * Candidate Id
+             * Format: uuid
+             */
+            candidate_id: string;
+            /** Compilable */
+            compilable: boolean;
+            /** Document Json */
+            document_json?: string | null;
+            /** Diagnostics */
+            diagnostics: string[];
+        };
         /** Endpoint */
         Endpoint: {
             /**
@@ -1401,6 +1926,89 @@ export interface components {
             address: string;
             /** Port */
             port: number;
+        };
+        /** EngineVersions */
+        EngineVersions: {
+            /**
+             * Contracts
+             * @default inference-contracts-1
+             * @constant
+             */
+            contracts: "inference-contracts-1";
+            /** Inference */
+            inference: string;
+            /** Framing */
+            framing: string;
+            /** Interpretation */
+            interpretation: string;
+            /** Validation */
+            validation: string;
+            /** Ranking */
+            ranking: string;
+        };
+        /** EvaluationList */
+        EvaluationList: {
+            /** Items */
+            items: components["schemas"]["EvaluationRecord"][];
+            /** Next Offset */
+            next_offset: number | null;
+        };
+        /** EvaluationRecord */
+        EvaluationRecord: {
+            evaluation: components["schemas"]["CandidateEvaluation"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Discovery Run Id
+             * Format: uuid
+             */
+            discovery_run_id: string;
+            /** Complete */
+            complete: boolean;
+            coverage: components["schemas"]["InferenceCoverage"];
+            /**
+             * Diagnostics
+             * @default []
+             */
+            diagnostics: string[];
+            /** Evidence Count */
+            evidence_count: number;
+            /**
+             * Target Side
+             * @default corpus
+             * @enum {string}
+             */
+            target_side: "holdout" | "corpus";
+        };
+        /** EvaluationRequest */
+        EvaluationRequest: {
+            /** Corpus Version Id */
+            corpus_version_id?: string | null;
+            /**
+             * Holdout
+             * @default false
+             */
+            holdout: boolean;
+        };
+        /** EventRule */
+        EventRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "event_association";
+            /** Before Ns */
+            before_ns: number;
+            /** After Ns */
+            after_ns: number;
+            /**
+             * Clock Offset Ns
+             * @default 0
+             */
+            clock_offset_ns: string;
         };
         /** Evidence */
         Evidence: {
@@ -1423,6 +2031,15 @@ export interface components {
             /** Packet Offset */
             packet_offset: number;
         };
+        /** EvidenceList */
+        EvidenceList: {
+            /** Items */
+            items: components["schemas"]["CandidateEvidence"][];
+            /** Total */
+            total: number;
+            /** Next Offset */
+            next_offset: number | null;
+        };
         /** FixedRule */
         FixedRule: {
             /**
@@ -1432,6 +2049,28 @@ export interface components {
             kind: "fixed";
             /** Size */
             size: number;
+        };
+        /** FramingCandidateRule */
+        FramingCandidateRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "fixed_framing" | "length_framing" | "marker_framing";
+            framing: components["schemas"]["FramingSpec"];
+        };
+        /** FramingInput */
+        FramingInput: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Sha256 */
+            sha256: string;
+            spec: components["schemas"]["FramingSpec"];
+            /** Stream Id */
+            stream_id?: string | null;
         };
         /** FramingSpec */
         FramingSpec: {
@@ -1458,6 +2097,21 @@ export interface components {
              * @default 200000
              */
             max_pieces: number;
+        };
+        /** GroupRule */
+        GroupRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "message_group" | "opcode_candidate";
+            /** Key Fields */
+            key_fields: components["schemas"]["IntegerLocation"][];
+            /**
+             * Masked Ranges
+             * @default []
+             */
+            masked_ranges: components["schemas"]["ByteRange"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1634,6 +2288,403 @@ export interface components {
              */
             eligible_for_reassembly: boolean;
         };
+        /** InferenceCandidate */
+        InferenceCandidate: {
+            /**
+             * Schema Version
+             * @default inference-candidate-1
+             * @constant
+             */
+            schema_version: "inference-candidate-1";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Family
+             * @enum {string}
+             */
+            family: "framing" | "structure" | "groups" | "counters" | "tokens" | "checksums" | "timestamps" | "entropy" | "events" | "data_mapping";
+            /** Detector Version */
+            detector_version: string;
+            /**
+             * Rule Schema Version
+             * @default inference-rule-1
+             * @constant
+             */
+            rule_schema_version: "inference-rule-1";
+            /** Rule */
+            rule: components["schemas"]["FramingCandidateRule"] | components["schemas"]["RegionRule"] | components["schemas"]["LengthRelationRule"] | components["schemas"]["DelimiterRule"] | components["schemas"]["GroupRule"] | components["schemas"]["CounterRule"] | components["schemas"]["ChecksumRule"] | components["schemas"]["TimestampRule"] | components["schemas"]["ProfileRule"] | components["schemas"]["EventRule"] | components["schemas"]["MappingRule"];
+            /** Rule Sha256 */
+            rule_sha256: string;
+            scope: components["schemas"]["CandidateScope"];
+            /**
+             * Dependency Ids
+             * @default []
+             */
+            dependency_ids: string[];
+            metrics: components["schemas"]["InferenceMetrics"];
+            ranking: components["schemas"]["RankingComponents"];
+            /** Rationale */
+            rationale: string;
+            /**
+             * Assumptions
+             * @default []
+             */
+            assumptions: string[];
+            /**
+             * Limitations
+             * @default []
+             */
+            limitations: string[];
+            /**
+             * Alternatives
+             * @default []
+             */
+            alternatives: string[];
+            /**
+             * Compiler Support
+             * @enum {string}
+             */
+            compiler_support: "interpretation-1" | "not_compilable";
+            /** Compiler Reason */
+            compiler_reason?: string | null;
+        };
+        /** InferenceCapabilities */
+        InferenceCapabilities: {
+            /**
+             * Stage
+             * @default A1
+             * @constant
+             */
+            stage: "A1";
+            /**
+             * Contract Version
+             * @default inference-contracts-1
+             */
+            contract_version: string;
+            /**
+             * Analysis Available
+             * @default true
+             * @constant
+             */
+            analysis_available: true;
+            /**
+             * Scope Verification Available
+             * @default true
+             * @constant
+             */
+            scope_verification_available: true;
+            /**
+             * Budget Profile
+             * @default bounded_a1
+             */
+            budget_profile: string;
+            /** Detectors */
+            detectors: components["schemas"]["DetectorCapability"][];
+            default_budget?: components["schemas"]["SearchBudget"];
+            default_search?: components["schemas"]["SearchSpace"];
+            /** Schema Names */
+            schema_names: ("spec" | "snapshot" | "rule" | "candidate" | "run" | "evidence" | "evaluation" | "decision" | "transform")[];
+        };
+        /** InferenceCoverage */
+        InferenceCoverage: {
+            /** Stream Bytes */
+            stream_bytes: number;
+            /** Selected Bytes */
+            selected_bytes: number;
+            /** Excluded Bytes */
+            excluded_bytes: number;
+            /** Known Bytes */
+            known_bytes: number;
+            /** Unavailable Bytes */
+            unavailable_bytes: number;
+            /** Ambiguous Bytes */
+            ambiguous_bytes: number;
+            /** Unframed Bytes */
+            unframed_bytes: number;
+        };
+        /** InferenceCurrentness */
+        InferenceCurrentness: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Stale */
+            stale: boolean;
+            /** Reasons */
+            reasons: string[];
+            /**
+             * Details
+             * @default []
+             */
+            details: string[];
+        };
+        /** InferenceMetrics */
+        InferenceMetrics: {
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "message" | "transition" | "event" | "session";
+            /** Eligible */
+            eligible: number;
+            /** Matched */
+            matched: number;
+            /** Contradicted */
+            contradicted: number;
+            /** Unknown */
+            unknown: number;
+            /** Ambiguous */
+            ambiguous: number;
+            /** Not Applicable */
+            not_applicable: number;
+            /** Captures */
+            captures: number;
+            /** Sessions */
+            sessions: number;
+            /** Unique Messages */
+            unique_messages: number;
+            /**
+             * Distinct Values
+             * @default 0
+             */
+            distinct_values: number;
+            /**
+             * Distinct Lengths
+             * @default 0
+             */
+            distinct_lengths: number;
+        };
+        /** InferenceRequest */
+        InferenceRequest: {
+            /** Document Json */
+            document_json: string;
+            /** Parent Id */
+            parent_id?: string | null;
+        };
+        /** InferenceRun */
+        InferenceRun: {
+            /**
+             * Schema Version
+             * @default inference-run-1
+             * @constant
+             */
+            schema_version: "inference-run-1";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            snapshot: components["schemas"]["InferenceSnapshot"];
+            /** Outcomes */
+            outcomes: components["schemas"]["DetectorOutcome"][];
+            /** Search Complete */
+            search_complete: boolean;
+            /** Candidate Count */
+            candidate_count: number;
+            /** Sample Sha256 */
+            sample_sha256: string;
+            coverage: components["schemas"]["InferenceCoverage"];
+            /**
+             * Diagnostics
+             * @default []
+             */
+            diagnostics: string[];
+            /**
+             * Rule Trials
+             * @default 0
+             */
+            rule_trials: number;
+            /** Semantic Sha256 */
+            semantic_sha256?: string | null;
+            /**
+             * Search Ranges
+             * @default []
+             */
+            search_ranges: components["schemas"]["SearchRange"][];
+        };
+        /** InferenceRunList */
+        InferenceRunList: {
+            /** Items */
+            items: components["schemas"]["RunSummary"][];
+            /** Next Offset */
+            next_offset: number | null;
+        };
+        /** InferenceSnapshot */
+        InferenceSnapshot: {
+            /**
+             * Schema Version
+             * @default inference-snapshot-1
+             * @constant
+             */
+            schema_version: "inference-snapshot-1";
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            spec: components["schemas"]["InferenceSpec"];
+            corpus: components["schemas"]["StoredCorpus"];
+            /** Sources */
+            sources: components["schemas"]["CaptureSnapshot"][];
+            interpretation?: components["schemas"]["InterpretationInput"] | null;
+            /**
+             * Framing
+             * @default []
+             */
+            framing: components["schemas"]["FramingInput"][];
+            /**
+             * Candidates
+             * @default []
+             */
+            candidates: components["schemas"]["CandidateInput"][];
+            /**
+             * Sample Anchors
+             * @default []
+             */
+            sample_anchors: components["schemas"]["StreamRange"][];
+            engines: components["schemas"]["EngineVersions"];
+        };
+        /** InferenceSpec */
+        InferenceSpec: {
+            /**
+             * Schema Version
+             * @default inference-spec-1
+             * @constant
+             */
+            schema_version: "inference-spec-1";
+            /**
+             * Corpus Version Id
+             * Format: uuid
+             */
+            corpus_version_id: string;
+            /**
+             * Mode
+             * @default discover
+             * @enum {string}
+             */
+            mode: "discover" | "evaluate";
+            /**
+             * Candidate Ids
+             * @default []
+             */
+            candidate_ids: string[];
+            /** Detectors */
+            detectors: components["schemas"]["DetectorRequest"][];
+            split: components["schemas"]["DataSplit"];
+            sampling?: components["schemas"]["SamplingSpec"];
+            budget?: components["schemas"]["SearchBudget"];
+            search?: components["schemas"]["SearchSpace"];
+            /**
+             * Framing Version Ids
+             * @default []
+             */
+            framing_version_ids: string[];
+            /** Interpretation Version Id */
+            interpretation_version_id?: string | null;
+            /**
+             * Assumptions
+             * @default []
+             */
+            assumptions: string[];
+            /**
+             * Known Markers
+             * @default []
+             */
+            known_markers: string[];
+            /**
+             * Excluded Ranges
+             * @default []
+             */
+            excluded_ranges: components["schemas"]["StreamRange"][];
+            /**
+             * Recording Groups
+             * @default []
+             */
+            recording_groups: components["schemas"]["RecordingGroup"][];
+            /**
+             * Logs
+             * @default []
+             */
+            logs: components["schemas"]["LogInput"][];
+            /**
+             * Parameters
+             * @default []
+             */
+            parameters: components["schemas"]["ParameterInput"][];
+            /**
+             * Event Before Ns
+             * @default 0
+             */
+            event_before_ns: number;
+            /**
+             * Event After Ns
+             * @default 1000000000
+             */
+            event_after_ns: number;
+            /**
+             * Checksum Algorithms
+             * @default [
+             *       "xor8",
+             *       "sum8",
+             *       "sum16",
+             *       "internet_checksum",
+             *       "CRC-8/SMBUS",
+             *       "CRC-16/ARC",
+             *       "CRC-16/IBM-3740",
+             *       "CRC-16/IBM-SDLC",
+             *       "CRC-32/ISO-HDLC"
+             *     ]
+             */
+            checksum_algorithms: ("xor8" | "sum8" | "sum16" | "internet_checksum" | "CRC-8/SMBUS" | "CRC-16/ARC" | "CRC-16/IBM-3740" | "CRC-16/IBM-SDLC" | "CRC-32/ISO-HDLC")[];
+        };
+        /** IntegerLocation */
+        IntegerLocation: {
+            /** Offset */
+            offset: number;
+            /**
+             * Width
+             * @enum {integer}
+             */
+            width: 1 | 2 | 4 | 8;
+            /**
+             * Endian
+             * @enum {string}
+             */
+            endian: "big" | "little";
+            /**
+             * Signed
+             * @default false
+             */
+            signed: boolean;
+        };
+        /** InterpretationInput */
+        InterpretationInput: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Sha256 */
+            sha256: string;
+            /** Document Json */
+            document_json: string;
+        };
         /** JobListResponse */
         JobListResponse: {
             /** Items */
@@ -1651,7 +2702,7 @@ export interface components {
              * @default worker_diagnostic
              * @enum {string}
              */
-            kind: "worker_diagnostic" | "capture_import" | "tcp_reconstruction" | "stream_search" | "action_log_import" | "stream_framing" | "message_interpretation" | "corpus_validation" | "project_operation" | "project_restore";
+            kind: "worker_diagnostic" | "capture_import" | "tcp_reconstruction" | "stream_search" | "action_log_import" | "stream_framing" | "message_interpretation" | "corpus_validation" | "protocol_inference" | "inference_evaluation" | "project_operation" | "project_restore";
             /**
              * Status
              * @default queued
@@ -1691,6 +2742,35 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+        };
+        /** LengthRelationRule */
+        LengthRelationRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "length_relation";
+            field: components["schemas"]["IntegerLocation"];
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "message" | "payload" | "array";
+            /**
+             * Target Offset
+             * @default 0
+             */
+            target_offset: number;
+            /**
+             * Multiplier
+             * @default 1
+             */
+            multiplier: number;
+            /**
+             * Adjustment
+             * @default 0
+             */
+            adjustment: number;
         };
         /** LengthRule */
         LengthRule: {
@@ -1733,6 +2813,42 @@ export interface components {
             items: components["schemas"]["ActionLink"][];
             /** Next Offset */
             next_offset: number | null;
+        };
+        /** LogInput */
+        LogInput: {
+            /**
+             * Log Id
+             * Format: uuid
+             */
+            log_id: string;
+            /** Sha256 */
+            sha256: string;
+            /** Clock Revision */
+            clock_revision: number;
+            /** Clock Offset Ns */
+            clock_offset_ns: string;
+            /** Timestamp Field */
+            timestamp_field: string;
+            /** Label Field */
+            label_field: string;
+            /** Parameters Field */
+            parameters_field?: string | null;
+            /**
+             * Timestamp Format
+             * @enum {string}
+             */
+            timestamp_format: "iso8601" | "unix_s" | "unix_ms" | "unix_ns";
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "csv" | "json";
+            /**
+             * Delimiter
+             * @default ,
+             * @enum {string}
+             */
+            delimiter: "," | ";" | "\t";
         };
         /** LogList */
         LogList: {
@@ -1786,6 +2902,38 @@ export interface components {
              */
             ranges: components["schemas"]["ByteRange"][];
         };
+        /** MappingRule */
+        MappingRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "parameter_mapping";
+            /** Parameter Path */
+            parameter_path: string[];
+            /**
+             * Encoding
+             * @enum {string}
+             */
+            encoding: "ascii" | "utf-8" | "utf-16le" | "utf-16be" | "decimal" | "integer";
+            /**
+             * Base64
+             * @default none
+             * @enum {string}
+             */
+            base64: "none" | "standard" | "urlsafe";
+            /**
+             * Padding
+             * @default true
+             */
+            padding: boolean;
+            /**
+             * Bom
+             * @default false
+             */
+            bom: boolean;
+            integer?: components["schemas"]["IntegerLocation"] | null;
+        };
         /** MarkerRule */
         MarkerRule: {
             /**
@@ -1814,6 +2962,7 @@ export interface components {
             fields: components["schemas"]["DecodedField"][];
             /** Unknown Ranges */
             unknown_ranges: components["schemas"]["UnknownRange"][];
+            technical_limit?: components["schemas"]["TechnicalLimit"] | null;
         };
         /** MessageSummary */
         MessageSummary: {
@@ -1831,6 +2980,7 @@ export interface components {
             field_count: number;
             /** Unknown Range Count */
             unknown_range_count: number;
+            technical_limit?: components["schemas"]["TechnicalLimit"] | null;
         };
         /** ModelCheck */
         ModelCheck: {
@@ -1905,6 +3055,23 @@ export interface components {
             /** Next Offset */
             next_offset: number | null;
         };
+        /** ParameterInput */
+        ParameterInput: {
+            /** Log Id */
+            log_id?: string | null;
+            /**
+             * Event Ids
+             * @default []
+             */
+            event_ids: string[];
+            /**
+             * Parameter Path
+             * @default []
+             */
+            parameter_path: string[];
+            /** Text */
+            text?: string | null;
+        };
         /** Piece */
         Piece: {
             /**
@@ -1932,6 +3099,7 @@ export interface components {
             data_status: "known" | "incomplete" | "ambiguous" | "mixed";
             /** Diagnostic */
             diagnostic: string;
+            technical_limit?: components["schemas"]["TechnicalLimit"] | null;
         };
         /** PieceList */
         PieceList: {
@@ -1939,6 +3107,24 @@ export interface components {
             items: components["schemas"]["Piece"][];
             /** Next Offset */
             next_offset: number | null;
+        };
+        /** ProfileRule */
+        ProfileRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "byte_profile" | "entropy_region";
+            /**
+             * Measurement
+             * @enum {string}
+             */
+            measurement: "within_block" | "sliding_window" | "across_messages";
+            /**
+             * Window Bytes
+             * @default 64
+             */
+            window_bytes: number;
         };
         /** Project */
         Project: {
@@ -1974,6 +3160,27 @@ export interface components {
             status: string;
             /** Variants */
             variants: components["schemas"]["ByteVariant"][];
+        };
+        /** RankingComponents */
+        RankingComponents: {
+            /**
+             * Version
+             * @default lexicographic-1
+             * @constant
+             */
+            version: "lexicographic-1";
+            /** Supporting Sessions */
+            supporting_sessions: number;
+            /** Matched */
+            matched: number;
+            /** Checked */
+            checked: number;
+            /** Explained Bytes */
+            explained_bytes: number;
+            /** Contradictions */
+            contradictions: number;
+            /** Free Parameters */
+            free_parameters: number;
         };
         /** RebuiltStream */
         RebuiltStream: {
@@ -2044,6 +3251,42 @@ export interface components {
              */
             max_comparison_bytes: number;
         };
+        /**
+         * RecordingGroup
+         * @description Explicit knowledge that captures observe the same traffic; never inferred from labels.
+         */
+        RecordingGroup: {
+            /** Capture Ids */
+            capture_ids: string[];
+            /** Rationale */
+            rationale: string;
+        };
+        /** RegionRule */
+        RegionRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "constant_region" | "copied_value" | "end_marker" | "field_boundary_candidate" | "fixed_width_region" | "session_stable_region" | "session_token_candidate" | "start_marker";
+            /**
+             * Relative To
+             * @default message_start
+             * @enum {string}
+             */
+            relative_to: "message_start" | "message_end";
+            /** Offset */
+            offset: number;
+            /** Length */
+            length: number;
+            /** Value Hex */
+            value_hex?: string | null;
+            /**
+             * Relation Scope
+             * @default message_group
+             * @enum {string}
+             */
+            relation_scope: "message_group" | "direction" | "session";
+        };
         /** RunInput */
         RunInput: {
             /**
@@ -2103,11 +3346,37 @@ export interface components {
             interpretation_engine_version: string;
             /**
              * Engine Version
-             * @default validation-v2
+             * @default validation-v3
              */
             engine_version: string;
             /** Sources */
             sources: components["schemas"]["CaptureSnapshot"][];
+        };
+        /** RunSummary */
+        RunSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Corpus Name */
+            corpus_name: string;
+            /**
+             * Corpus Version Id
+             * Format: uuid
+             */
+            corpus_version_id: string;
+            /** Candidate Count */
+            candidate_count: number;
+            /** Search Complete */
+            search_complete: boolean;
+            /** Semantic Sha256 */
+            semantic_sha256: string | null;
         };
         /** RunView */
         RunView: {
@@ -2132,7 +3401,7 @@ export interface components {
             capture_sha256: string;
             /**
              * Engine Version
-             * @default framing-v1
+             * @default framing-v2
              */
             engine_version: string;
             spec: components["schemas"]["FramingSpec"];
@@ -2150,12 +3419,148 @@ export interface components {
              */
             pieces: components["schemas"]["Piece"][];
         };
+        /** SamplingSpec */
+        SamplingSpec: {
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Strategy
+             * @default stratified_hash_round_robin_v1
+             * @constant
+             */
+            strategy: "stratified_hash_round_robin_v1";
+            /**
+             * Deduplication
+             * @default payload_sha256
+             * @constant
+             */
+            deduplication: "payload_sha256";
+        };
         /** SaveModel */
         SaveModel: {
             /** Document Json */
             document_json: string;
             /** Parent Id */
             parent_id?: string | null;
+        };
+        /**
+         * SearchBudget
+         * @description Finite operation counts, not assumptions about the investigated protocol.
+         */
+        SearchBudget: {
+            /**
+             * Max Sample Messages
+             * @default 5000
+             */
+            max_sample_messages: number;
+            /**
+             * Max Sample Units
+             * @default 100000
+             */
+            max_sample_units: number;
+            /**
+             * Max Scanned Bytes
+             * @default 104857600
+             */
+            max_scanned_bytes: number;
+            /**
+             * Max Header Bytes
+             * @default 64
+             */
+            max_header_bytes: number;
+            /**
+             * Max Candidates Per Family
+             * @default 200
+             */
+            max_candidates_per_family: number;
+            /**
+             * Max Candidates
+             * @default 2000
+             */
+            max_candidates: number;
+            /**
+             * Max Framing Alternatives
+             * @default 10
+             */
+            max_framing_alternatives: number;
+            /**
+             * Max Refinement Iterations
+             * @default 2
+             */
+            max_refinement_iterations: number;
+            /**
+             * Max Evidence Bytes
+             * @default 268435456
+             */
+            max_evidence_bytes: number;
+            /**
+             * Max Decoded Field Bytes
+             * @default 1048576
+             */
+            max_decoded_field_bytes: number;
+            /**
+             * Max Alignment Cells
+             * @default 1000000
+             */
+            max_alignment_cells: number;
+            /**
+             * Max Candidate Evaluations
+             * @default 100000
+             */
+            max_candidate_evaluations: number;
+            /**
+             * Max Checksum Operations
+             * @default 1000000
+             */
+            max_checksum_operations: number;
+            /**
+             * Max Event Windows
+             * @default 100000
+             */
+            max_event_windows: number;
+            /**
+             * Max Rule Trials
+             * @default 20000
+             */
+            max_rule_trials: number;
+            /**
+             * Max Probe Bytes
+             * @default 65536
+             */
+            max_probe_bytes: number;
+            /**
+             * Max Message Bytes
+             * @default 1048576
+             */
+            max_message_bytes: number;
+            /**
+             * Max Marker Positions
+             * @default 4096
+             */
+            max_marker_positions: number;
+            /**
+             * Max Probe Streams
+             * @default 8
+             */
+            max_probe_streams: number;
+            /**
+             * Max Screen Messages
+             * @default 64
+             */
+            max_screen_messages: number;
+            /**
+             * Max Marker Occurrences
+             * @default 32
+             */
+            max_marker_occurrences: number;
+            /**
+             * Max Shortlist Per Kind
+             * @default 48
+             */
+            max_shortlist_per_kind: number;
         };
         /** SearchInput */
         SearchInput: {
@@ -2166,6 +3571,85 @@ export interface components {
              * @default 0
              */
             start: number;
+        };
+        /** SearchRange */
+        SearchRange: {
+            anchor: components["schemas"]["StreamRange"];
+            /** Scanned */
+            scanned: boolean;
+            /** Diagnostic */
+            diagnostic: string;
+        };
+        /** SearchSpace */
+        SearchSpace: {
+            /**
+             * Fixed Size Min
+             * @default 1
+             */
+            fixed_size_min: number;
+            /**
+             * Fixed Size Max
+             * @default 4096
+             */
+            fixed_size_max: number;
+            /**
+             * Multiplier Min
+             * @default 1
+             */
+            multiplier_min: number;
+            /**
+             * Multiplier Max
+             * @default 4
+             */
+            multiplier_max: number;
+            /**
+             * Adjustment Min
+             * @default -64
+             */
+            adjustment_min: number;
+            /**
+             * Adjustment Max
+             * @default 64
+             */
+            adjustment_max: number;
+            /**
+             * Marker Max Bytes
+             * @default 16
+             */
+            marker_max_bytes: number;
+            /**
+             * Min Repeated Messages
+             * @default 3
+             */
+            min_repeated_messages: number;
+            /**
+             * Min Unique Messages
+             * @default 2
+             */
+            min_unique_messages: number;
+            /**
+             * Max Marker Patterns
+             * @default 16
+             */
+            max_marker_patterns: number;
+            /**
+             * Widths
+             * @default [
+             *       1,
+             *       2,
+             *       4,
+             *       8
+             *     ]
+             */
+            widths: (1 | 2 | 4 | 8)[];
+            /**
+             * Endians
+             * @default [
+             *       "big",
+             *       "little"
+             *     ]
+             */
+            endians: ("big" | "little")[];
         };
         /** SessionList */
         SessionList: {
@@ -2245,6 +3729,35 @@ export interface components {
              * @default []
              */
             sources: components["schemas"]["Evidence"][];
+        };
+        /** SpecCheck */
+        SpecCheck: {
+            /** Valid */
+            valid: boolean;
+            /**
+             * Scope Verified
+             * @default false
+             * @constant
+             */
+            scope_verified: false;
+            spec?: components["schemas"]["InferenceSpec"] | null;
+            /**
+             * Issues
+             * @default []
+             */
+            issues: components["schemas"]["SpecIssue"][];
+        };
+        /** SpecDocument */
+        SpecDocument: {
+            /** Document Json */
+            document_json: string;
+        };
+        /** SpecIssue */
+        SpecIssue: {
+            /** Path */
+            path: string;
+            /** Message */
+            message: string;
         };
         /** StoredCapture */
         StoredCapture: {
@@ -2503,6 +4016,54 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** TechnicalLimit */
+        TechnicalLimit: {
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "max_array_items" | "max_message_bytes" | "max_decoded_fields";
+            /** Observed */
+            observed: string;
+            /** Maximum */
+            maximum: string;
+            /**
+             * Observed Is Lower Bound
+             * @default false
+             */
+            observed_is_lower_bound: boolean;
+        };
+        /** TimestampRule */
+        TimestampRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "relative_clock_candidate" | "timestamp_candidate";
+            field: components["schemas"]["IntegerLocation"];
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "s" | "ms" | "us" | "ns";
+            /**
+             * Epoch
+             * @enum {string}
+             */
+            epoch: "unix" | "session_relative" | "unknown";
+            /**
+             * Clock Offset Ns
+             * @default 0
+             */
+            clock_offset_ns: string;
+            /** Tolerance Ns */
+            tolerance_ns: number;
+            /**
+             * Drift Ppm
+             * @default 0
+             */
+            drift_ppm: number;
+        };
         /** UnknownRange */
         UnknownRange: {
             anchor: components["schemas"]["StreamRange"];
@@ -2565,6 +4126,7 @@ export interface components {
              * @default []
              */
             unknown_ranges: components["schemas"]["UnknownRange"][];
+            technical_limit?: components["schemas"]["TechnicalLimit"] | null;
         };
         /** ValidationResultList */
         ValidationResultList: {
@@ -2662,6 +4224,7 @@ export interface components {
             unknown_range_count: number;
             /** Values Sha256 */
             values_sha256: string;
+            technical_limit?: components["schemas"]["TechnicalLimit"] | null;
         };
         /** VerifyResult */
         VerifyResult: {
@@ -4673,6 +6236,491 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Comparison"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capabilities_api_v1_inference_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferenceCapabilities"];
+                };
+            };
+        };
+    };
+    schema_api_v1_inference_schemas__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: "spec" | "snapshot" | "rule" | "candidate" | "run" | "evidence" | "evaluation" | "decision" | "transform";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_api_v1_inference_spec_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpecDocument"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    runs_api_v1_projects__project_id__inference_runs_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferenceRunList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discover_api_v1_projects__project_id__inference_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSnapshot"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_api_v1_inference_runs__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferenceRun"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    currentness_api_v1_inference_runs__id__currentness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferenceCurrentness"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    candidates_api_v1_inference_runs__id__candidates_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                family?: ("framing" | "structure" | "groups" | "counters" | "tokens" | "checksums" | "timestamps" | "entropy" | "events" | "data_mapping") | null;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    candidate_api_v1_inference_candidates__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferenceCandidate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_api_v1_inference_candidates__id__evidence_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                status?: ("passed" | "failed" | "unknown" | "ambiguous" | "not_applicable") | null;
+                evaluation_id?: string | null;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    draft_api_v1_inference_candidates__id__model_draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluations_api_v1_inference_candidates__id__evaluations_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_candidate_api_v1_inference_candidates__id__evaluations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSnapshot"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluation_api_v1_inference_evaluations__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluation_results_api_v1_inference_evaluations__id__results_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                status?: ("passed" | "failed" | "unknown" | "ambiguous" | "not_applicable") | null;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceList"];
                 };
             };
             /** @description Validation Error */

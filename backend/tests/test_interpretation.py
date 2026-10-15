@@ -202,10 +202,14 @@ def test_limits_cancellation_and_leftovers():
         ],
         max_array_items=2,
     )
-    assert parse(doc, b"\x03ABC").diagnostic == "computed_length_or_count_outside_limit"
+    limited = parse(doc, b"\x03ABC")
+    assert limited.diagnostic == "max_array_items_exceeded" and limited.status == "unknown"
+    assert limited.technical_limit.name == "max_array_items"
+    assert limited.technical_limit.observed == "3" and limited.technical_limit.maximum == "2"
     doc["max_array_items"] = 3
     doc["max_decoded_fields"] = 2
-    assert parse(doc, b"\x03ABC").diagnostic == "max_decoded_fields_exceeded"
+    limited = parse(doc, b"\x03ABC")
+    assert limited.diagnostic == "max_decoded_fields_exceeded" and limited.status == "unknown"
     with pytest.raises(WorkCancelled):
         parse(document([integer("x")]), b"X", cancelled=lambda: True)
     result = parse(document([integer("x")]), b"AB", kind="leftover")
@@ -355,3 +359,90 @@ def test_unknown_range_limit_never_silently_truncates_coverage():
     doc = document([integer("first")], max_decoded_fields=1)
     with pytest.raises(ValueError, match="Unknown range count"):
         parse(doc, b"ABCD", [(0, 1, "known"), (1, 2, "gap"), (2, 3, "known"), (3, 4, "ambiguous")])
+
+
+def test_array_resource_limit_is_unknown_and_increasing_budget_does_not_change_evidence():
+    doc = document(
+        [
+            integer("n"),
+            dict(kind="array", name="items", count={"field": "n"}, fields=[integer("value")]),
+        ],
+        max_array_items=2,
+    )
+    limited = parse(doc, b"\x03ABC")
+    assert limited.status == "unknown" and limited.diagnostic == "max_array_items_exceeded"
+    assert limited.fields[0].value == "3"
+    assert limited.unknown_ranges[0].anchor.byte_range == ByteRange(start=1, end=4)
+    doc["max_array_items"] = 3
+    complete = parse(doc, b"\x03ABC")
+    assert complete.status == "passed" and complete.technical_limit is None
+    assert complete.fields[0].value == limited.fields[0].value
+    assert complete.fields[0].anchor.byte_range == limited.fields[0].anchor.byte_range
+
+
+def test_negative_computed_length_is_a_rule_failure_not_resource_exhaustion():
+    result = parse(
+        document(
+            [
+                integer("n"),
+                dict(kind="bytes", name="payload", length={"field": "n", "add": -2}),
+            ]
+        ),
+        b"\x01ABC",
+    )
+    assert result.status == "failed" and result.technical_limit is None
+    assert result.diagnostic == "negative_computed_length_or_count"
+
+
+def test_huge_computed_length_is_unknown_with_exact_limit_and_legacy_result_is_readable():
+    from protocol_lab.interpretation.engine import MessageResult
+
+    result = parse(
+        document(
+            [
+                integer("n", width=8),
+                dict(kind="bytes", name="payload", length={"field": "n"}),
+            ]
+        ),
+        (2**64 - 1).to_bytes(8, "big"),
+    )
+    assert result.status == "unknown" and result.technical_limit.observed == str(2**64 - 1)
+    legacy = result.model_dump(mode="json")
+    legacy.pop("technical_limit")
+    legacy["status"], legacy["diagnostic"] = "failed", "computed_length_or_count_outside_limit"
+    old = MessageResult.model_validate(legacy)
+    assert old.status == "failed" and old.technical_limit is None
+
+
+def test_construct_wrapped_read_problem_and_cancellation_preserve_original_status():
+    # Exercise the ConstructError path, not just exceptions raised by our wrappers.
+    from construct import ConstructError
+
+    from protocol_lab.domain.diagnostics import technical_limit
+    from protocol_lab.interpretation.engine import Problem
+
+    class WrappedParser:
+        def __init__(self, problem):
+            self.problem = problem
+
+        def parse_stream(self, stream, **_):
+            stream.error = self.problem
+            raise ConstructError("wrapped")
+
+    from protocol_lab.interpretation.engine import parse_message
+    from protocol_lab.interpretation.schema import ProtocolModel
+
+    model = ProtocolModel.model_validate(document([integer("x")]))
+    from protocol_lab.framing.engine import FramingSpec, frame
+
+    source = StreamInput(1, [(0, 1, "known")], lambda *_: b"X")
+    piece = frame(
+        uuid4(), "tcp-v1", uuid4(), "0" * 64, source, FramingSpec(rule={"kind": "fixed", "size": 1})
+    ).pieces[0]
+    limit = technical_limit("max_array_items", 3, 2)
+    result = parse_message(
+        model, WrappedParser(Problem("max_array_items_exceeded", limit)), piece, source
+    )
+    assert result.status == "unknown" and result.technical_limit == limit
+    with pytest.raises(WorkCancelled):
+        parse_message(model, WrappedParser(WorkCancelled()), piece, source)

@@ -7,19 +7,35 @@ import { Button } from '@/shared/ui/button'
 import { formatTime, json, useJob, usePages, utcInput, type Capture, type Project, type Session } from './data'
 import { ErrorMessage, JobStatus, More } from './Common'
 import { StreamPanel } from './StreamPanel'
+import { ActionImport } from './ActionImport'
+import { FramingPanel } from './FramingPanel'
+import { WorkspaceState } from '@/shared/WorkspaceState'
+import { WorkspaceScreen } from '@/shared/WorkspaceScreen'
+import { navigateSection, useSection } from '@/shared/navigation'
+import { Database, ScanSearch, Braces, ListChecks, FileOutput, ArrowRight } from 'lucide-react'
 import { ActionsPanel } from './ActionsPanel'
 import { PortablePanel } from './PortablePanel'
 import { CorpusPanel } from './CorpusPanel'
 import { HypothesesPanel } from './HypothesesPanel'
+import { InferencePanel } from './InferencePanel'
 import type { components } from '@/shared/api-types'
 import type { ValidationItem } from './ValidationDetails'
 import type { Job } from '@/shared/api'
 
 export function Workspace({ project }: { project: Project }) {
   const state = useSelection()
-  const [section, setSection] = useState('sources')
-  const navigation = useMutation({ mutationFn: async (a: components['schemas']['StreamRange']) => { const stream = await request<components['schemas']['RebuiltStream']>(`/streams/${a.stream_id}`); return request<Session>(`/sessions/${stream.session_id}`) }, onSuccess: (session, a) => { if (useSelection.getState().projectId !== project.id) return; state.selectCapture(session.capture_id); state.selectSession(session.id, a.stream_id); state.selectRange({ streamId: a.stream_id, version: a.reconstruction_version, start: a.byte_range.start, end: a.byte_range.end }); setSection('sources') } })
-  function navigateResult(item: ValidationItem, anchor?: components['schemas']['StreamRange']) { state.selectCapture(item.capture_id); if (item.session_id) state.selectSession(item.session_id, item.stream_id ?? null); if (anchor) state.selectRange({ streamId: anchor.stream_id, version: anchor.reconstruction_version, start: anchor.byte_range.start, end: anchor.byte_range.end }); setSection('sources') }
+  const section = useSection()
+  const [revealRequest, setRevealRequest] = useState(0)
+  const [inferenceOpened, setInferenceOpened] = useState(false)
+  const [tool, setTool] = useState<'bytes' | 'actions' | 'hypotheses' | 'inference'>('bytes')
+  const title = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { title.current?.focus({ preventScroll: true }) }, [section])
+  function revealBytes() { setTool('bytes'); setRevealRequest(value => value + 1); navigateSection('research') }
+  function revealRange(a: components['schemas']['StreamRange']) {
+    state.selectRange({ streamId: a.stream_id, version: a.reconstruction_version, start: a.byte_range.start, end: a.byte_range.end }); revealBytes()
+  }
+  const navigation = useMutation({ mutationFn: async (a: components['schemas']['StreamRange']) => { const stream = await request<components['schemas']['RebuiltStream']>(`/streams/${a.stream_id}`); return request<Session>(`/sessions/${stream.session_id}`) }, onSuccess: (session, a) => { if (useSelection.getState().projectId !== project.id) return; state.selectCapture(session.capture_id); state.selectSession(session.id, a.stream_id); state.selectRange({ streamId: a.stream_id, version: a.reconstruction_version, start: a.byte_range.start, end: a.byte_range.end }); revealBytes() } })
+  function navigateResult(item: ValidationItem, anchor?: components['schemas']['StreamRange']) { state.selectCapture(item.capture_id); if (item.session_id) state.selectSession(item.session_id, item.stream_id ?? null); if (anchor) state.selectRange({ streamId: anchor.stream_id, version: anchor.reconstruction_version, start: anchor.byte_range.start, end: anchor.byte_range.end }); if (item.stream_id || anchor) revealBytes(); else navigateSection('data') }
   const [file, setFile] = useState<File | null>(null)
   const [policy, setPolicy] = useState('warn')
   const [jobId, setJobId] = useState<string | null>(null)
@@ -43,7 +59,6 @@ export function Workspace({ project }: { project: Project }) {
   const captureDetails = useQuery({ queryKey: ['capture', state.captureId], queryFn: () => request<Capture>(`/captures/${state.captureId}`), enabled: !!state.captureId })
   const currentCapture = allCaptures.find(c => c.id === state.captureId) ?? captureDetails.data
   const visibleCaptures = currentCapture && !allCaptures.some(c => c.id === currentCapture.id) ? [...allCaptures, currentCapture] : allCaptures
-  useEffect(() => { if (section === 'sources' && stream && state.range?.streamId === stream.id) requestAnimationFrame(() => document.getElementById(`stream-hex-${stream.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }, [section, stream?.id, state.range?.start, state.range?.end])
   function applyFilters() {
     try {
       const q = new URLSearchParams()
@@ -55,13 +70,26 @@ export function Workspace({ project }: { project: Project }) {
       setApplied(q.toString()); setFilterError(null)
     } catch (error) { setFilterError(error as Error) }
   }
-  return <div className="stack workspace">
-    <div className="workspace-title"><div><p className="eyebrow">Исследование протокола</p><h2>{project.name}</h2></div><small className="muted">Локальный проект · {project.id.slice(0, 8)}</small></div>
-    <nav className="form-row" aria-label="Работа с проектом"><Button variant={section === 'sources' ? 'default' : 'outline'} onClick={() => setSection('sources')}>Исходные данные</Button><Button variant={section === 'portable' ? 'default' : 'outline'} onClick={() => setSection('portable')}>Перенос и отчёт</Button><Button variant={section === 'validation' ? 'default' : 'outline'} onClick={() => setSection('validation')}>Гипотезы и проверка корпуса</Button></nav>
-    <div hidden={section !== 'portable'} className="research-tab"><PortablePanel projectId={project.id} /></div>
-    <ErrorMessage error={navigation.error} />
-    <div hidden={section !== 'validation'} className="research-tab"><div className="stack"><HypothesesPanel projectId={project.id} navigate={anchor => navigation.mutate(anchor)} /><CorpusPanel projectId={project.id} navigate={navigateResult} /></div></div>
-    <div hidden={section !== 'sources'} className="research-tab"><div className="stack">
+  const navigationItems = [
+    { id: 'data', label: 'Данные', icon: Database, hint: 'Записи и журналы' },
+    { id: 'research', label: 'Исследование', icon: ScanSearch, hint: 'Байты и доказательства' },
+    { id: 'model', label: 'Модель', icon: Braces, hint: 'Границы и поля' },
+    { id: 'validation', label: 'Проверка', icon: ListChecks, hint: 'Корпус и контрпримеры' },
+    { id: 'results', label: 'Результаты', icon: FileOutput, hint: 'Отчёт и перенос' },
+  ] as const
+  const currentSection = navigationItems.find(item => item.id === section)!
+  return <WorkspaceState><div className="workspace-shell">
+    <nav className="section-navigation" aria-label="Разделы проекта">
+      <p className="eyebrow">Рабочая область</p>
+      {navigationItems.map(({ id, label, icon: Icon, hint }) => <a key={id} href={`#${id}`} aria-current={section === id ? 'page' : undefined}><Icon size={18} aria-hidden="true" /><span>{label}<small>{hint}</small></span></a>)}
+      <div className="navigation-help">Локальный проект<br /><span>Оригиналы и версии сохранены отдельно от черновиков.</span></div>
+    </nav>
+    <main className="workspace-content" id="project-content" tabIndex={-1}>
+      <header className="workspace-heading"><div><p className="eyebrow">{project.name}</p><h2 ref={title} tabIndex={-1}>{currentSection.label}</h2></div><small className="muted">{currentSection.hint}</small></header>
+      <ErrorMessage error={navigation.error} />
+      {section !== 'data' && <div className="context-bar"><div><strong>{selected.data ? `${selected.data.endpoint_a.address}:${selected.data.endpoint_a.port} ↔ ${selected.data.endpoint_b.address}:${selected.data.endpoint_b.port}` : 'Соединение не выбрано'}</strong><small className="muted">{state.captureId ? `Запись ${state.captureId.slice(0, 8)}` : 'Выберите исходные данные'}{state.range ? ` · выделение [${state.range.start}, ${state.range.end})` : ''}</small></div><div className="form-row">{selected.data?.streams.map(s => <Button size="sm" key={s.id} variant={state.streamId === s.id ? 'default' : 'outline'} aria-pressed={state.streamId === s.id} onClick={() => state.selectStream(s.id)}>{s.direction === 'a_to_b' ? 'A → B' : 'B → A'} · {s.extent} байт</Button>)}<Button size="sm" variant="outline" onClick={() => navigateSection('data')}>Сменить соединение</Button></div></div>}
+      <WorkspaceScreen active={section === 'data'} label="Данные проекта">
+        <div className="data-grid">
     <section className="panel stack" aria-label="Импорт записи">
       <h3>Записи PCAP / PCAPNG</h3>
       <form className="form-row" onSubmit={e => { e.preventDefault(); upload.mutate() }}>
@@ -88,12 +116,28 @@ export function Workspace({ project }: { project: Project }) {
       <div ref={scroll} className="session-list" role="list" aria-label="TCP-сессии">
         {sessions.isLoading && <p className="muted p-3">Загрузка соединений…</p>}
         {!sessions.isLoading && !items.length && <p className="muted p-3">Соединений нет. Восстановите TCP для выбранной записи или измените фильтры.</p>}
-        <div style={{ height: rows.getTotalSize(), position: 'relative' }}>{rows.getVirtualItems().map(row => { const s = items[row.index]; return <button key={s.id} role="listitem" aria-label={`Соединение ${s.endpoint_a.address}:${s.endpoint_a.port} → ${s.endpoint_b.address}:${s.endpoint_b.port}`} aria-pressed={state.sessionId === s.id} className="session-row" style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => state.selectSession(s.id, s.streams[0]?.id ?? null)}><span><strong>{s.endpoint_a.address}:{s.endpoint_a.port} ↔ {s.endpoint_b.address}:{s.endpoint_b.port}</strong><small>Запись {s.capture_id.slice(0, 8)} · интерфейс {s.section_index}/{s.interface_id}</small></span><span><small>{formatTime(s.start_timestamp_ns)}</small>{s.packet_count} пакетов</span><span className="text-xs">{!s.start_known && 'Начало неизвестно. '}{!s.roles_known && 'Роли неизвестны. '}{s.diagnostics.join('; ') || 'Без замечаний'}</span></button> })}</div>
+        <div style={{ height: rows.getTotalSize(), position: 'relative' }}>{rows.getVirtualItems().map(row => { const s = items[row.index]; return <button key={s.id} role="listitem" aria-label={`Соединение ${s.endpoint_a.address}:${s.endpoint_a.port} → ${s.endpoint_b.address}:${s.endpoint_b.port}`} aria-pressed={state.sessionId === s.id} className="session-row" style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => { state.selectSession(s.id, s.streams[0]?.id ?? null); revealBytes() }}><span><strong>{s.endpoint_a.address}:{s.endpoint_a.port} ↔ {s.endpoint_b.address}:{s.endpoint_b.port}</strong><small>Запись {s.capture_id.slice(0, 8)} · интерфейс {s.section_index}/{s.interface_id}</small></span><span><small>{formatTime(s.start_timestamp_ns)}</small>{s.packet_count} пакетов</span><span className="text-xs">{!s.start_known && 'Начало неизвестно. '}{!s.roles_known && 'Роли неизвестны. '}{s.diagnostics.join('; ') || 'Без замечаний'}</span></button> })}</div>
       </div><More query={sessions} />
     </section>
-    <ErrorMessage error={selected.error} />
-    {selected.data && <section className="stack" aria-label="Потоки соединения"><div className="form-row"><h3>Направление потока</h3>{selected.data.streams.map(s => <Button key={s.id} variant={state.streamId === s.id ? 'default' : 'outline'} onClick={() => state.selectStream(s.id)}>{s.direction === 'a_to_b' ? 'A → B' : 'B → A'} · {s.extent} байт</Button>)}</div>{selected.data.diagnostics.length > 0 && <p className="notice">{selected.data.diagnostics.join('; ')}</p>}{stream ? <StreamPanel key={stream.id} stream={stream} projectId={project.id} /> : <p className="notice">Выберите доступное направление. Ошибка направления не скрывает остальные данные.</p>}</section>}
-    <ActionsPanel key={project.id} projectId={project.id} />
-    </div></div>
-  </div>
+        </div>
+        <ActionImport projectId={project.id} />
+      </WorkspaceScreen>
+      <WorkspaceScreen active={section === 'research'} label="Рабочая область исследования">
+        <nav className="tool-navigation" aria-label="Инструменты исследования"><Button variant={tool === 'bytes' ? 'default' : 'outline'} aria-pressed={tool === 'bytes'} onClick={() => setTool('bytes')}>Байты и источники</Button><Button variant={tool === 'actions' ? 'default' : 'outline'} aria-pressed={tool === 'actions'} onClick={() => setTool('actions')}>Журнал действий</Button><Button variant={tool === 'hypotheses' ? 'default' : 'outline'} aria-pressed={tool === 'hypotheses'} onClick={() => setTool('hypotheses')}>Гипотезы</Button><Button variant={tool === 'inference' ? 'default' : 'outline'} aria-pressed={tool === 'inference'} onClick={() => { setInferenceOpened(true); setTool('inference') }}>Анализатор</Button><Button variant="outline" onClick={() => navigateSection('model')}>Открыть модель <ArrowRight size={15} aria-hidden="true" /></Button></nav>
+        <WorkspaceScreen active={tool === 'bytes'} className="tool-screen" label="Байты и источники">
+          <ErrorMessage error={selected.error} />
+          {selected.data && selected.data.diagnostics.length > 0 && <p className="notice warning">{selected.data.diagnostics.join('; ')}</p>}
+          {stream ? <StreamPanel key={stream.id} stream={stream} projectId={project.id} revealRequest={revealRequest} /> : <div className="panel empty-state"><ScanSearch size={30} aria-hidden="true" /><h3>Выберите соединение для исследования</h3><p>Импортируйте запись, восстановите TCP и откройте нужное соединение.</p><Button onClick={() => navigateSection('data')}>Перейти к данным</Button></div>}
+        </WorkspaceScreen>
+        <WorkspaceScreen active={tool === 'actions'} className="tool-screen" label="Журнал действий"><ActionsPanel projectId={project.id} onNavigate={revealBytes} /></WorkspaceScreen>
+        <WorkspaceScreen active={tool === 'inference'} className="tool-screen" label="Автоматический анализ">{inferenceOpened && <InferencePanel projectId={project.id} navigate={anchor => navigation.mutate(anchor)} />}</WorkspaceScreen>
+        <WorkspaceScreen active={tool === 'hypotheses'} className="tool-screen" label="Гипотезы"><HypothesesPanel projectId={project.id} navigate={anchor => navigation.mutate(anchor)} /></WorkspaceScreen>
+      </WorkspaceScreen>
+      <WorkspaceScreen active={section === 'model'} label="Редактор модели">
+        {stream ? <FramingPanel key={stream.id} stream={stream} onNavigate={revealRange} /> : <div className="panel empty-state"><Braces size={30} aria-hidden="true" /><h3>Выберите поток для модели</h3><p>Границы сообщений и поля настраиваются независимо и проверяются на исходных байтах.</p><Button onClick={() => navigateSection('data')}>Выбрать соединение</Button></div>}
+      </WorkspaceScreen>
+      <WorkspaceScreen active={section === 'validation'} label="Проверка корпуса"><CorpusPanel projectId={project.id} navigate={navigateResult} /></WorkspaceScreen>
+      <WorkspaceScreen active={section === 'results'} label="Результаты проекта"><PortablePanel projectId={project.id} /></WorkspaceScreen>
+    </main>
+  </div></WorkspaceState>
 }

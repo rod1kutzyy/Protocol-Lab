@@ -16,20 +16,22 @@ from pathlib import PurePosixPath
 from uuid import UUID
 
 from pydantic import Field, model_validator
-from sqlalchemy import DateTime, Numeric, Uuid, func, insert, select, text, update
+from sqlalchemy import DateTime, Numeric, Uuid, func, insert, or_, select, text, update
 
 from protocol_lab.capture.index import WorkCancelled, sha256_file
 from protocol_lab.domain.models import Record
 from protocol_lab.storage.database import Base
 from protocol_lab.storage.projects import ProjectManifest, StorageError
 
-SNAPSHOT_REVISION = "0006_validation"
+SNAPSHOT_REVISION = "0007_inference"
+LEGACY_REVISION = "0006_validation"
 MAX_MEMBERS = 20000
 MAX_MEMBER_BYTES = 512 * 1024 * 1024
 MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024
 MAX_ROWS = 2_000_000
 MAX_LINE_BYTES = 32 * 1024 * 1024
 TABLES = {table.name: table for table in Base.metadata.sorted_tables}
+INFERENCE_TABLES = {name for name in TABLES if name.startswith("inference_")}
 
 
 class Member(Record):
@@ -39,7 +41,7 @@ class Member(Record):
 
 class Bundle(Record):
     format: str = "protocol-lab-bundle"
-    format_version: int = 1
+    format_version: int = 2
     metadata_schema_revision: str = SNAPSHOT_REVISION
     project_id: UUID
     members: dict[str, Member]
@@ -47,13 +49,13 @@ class Bundle(Record):
 
     @model_validator(mode="after")
     def compatible(self):
-        if (
-            self.format != "protocol-lab-bundle"
-            or self.format_version != 1
-            or self.metadata_schema_revision != SNAPSHOT_REVISION
-        ):
+        if self.format != "protocol-lab-bundle" or (
+            self.format_version,
+            self.metadata_schema_revision,
+        ) not in {(1, LEGACY_REVISION), (2, SNAPSHOT_REVISION)}:
             raise ValueError("Unsupported portable format/schema revision")
-        if set(self.table_counts) != set(TABLES) or any(n < 0 for n in self.table_counts.values()):
+        inventory = set(TABLES) - INFERENCE_TABLES if self.format_version == 1 else set(TABLES)
+        if set(self.table_counts) != inventory or any(n < 0 for n in self.table_counts.values()):
             raise ValueError("Snapshot table inventory is incompatible")
         if sum(self.table_counts.values()) > MAX_ROWS or len(self.members) > MAX_MEMBERS:
             raise ValueError("Snapshot exceeds protective row/member limits")
@@ -93,7 +95,11 @@ def scoped(table, project_id):
     for fk in table.foreign_keys:
         parent = fk.column.table
         if parent is not table:
-            conditions.append(fk.parent.in_(select(fk.column).where(scoped(parent, project_id))))
+            condition = fk.parent.in_(select(fk.column).where(scoped(parent, project_id)))
+            # Optional references must not silently drop discovery evidence or diagnoses.
+            conditions.append(
+                or_(fk.parent.is_(None), condition) if fk.parent.nullable else condition
+            )
     if not conditions:
         raise StorageError(f"Table {table.name} has no project ownership path")
     from sqlalchemy import and_
@@ -145,6 +151,8 @@ def validate_metadata(name, row):
     from protocol_lab.capture.index import IndexedPacket
     from protocol_lab.domain.models import Observation
     from protocol_lab.framing.engine import Piece
+    from protocol_lab.inference.models import InferenceCandidate, InferenceRun
+    from protocol_lab.inference.results import EvaluationRecord
     from protocol_lab.interpretation.document import load_model
     from protocol_lab.interpretation.engine import MessageResult
     from protocol_lab.interpretation.schema import content_hash
@@ -173,6 +181,9 @@ def validate_metadata(name, row):
         "corpus_versions": StoredCorpus,
         "validation_runs": ValidationRun,
         "validation_results": ValidationItem,
+        "inference_runs": InferenceRun,
+        "inference_candidates": InferenceCandidate,
+        "inference_evaluations": EvaluationRecord,
     }
     if name == "projects":
         Project.model_validate({key: row[key] for key in Project.model_fields})
@@ -190,6 +201,40 @@ def validate_metadata(name, row):
         Reconstruction.model_validate({**row["metadata_json"], "sessions": []})
     elif name in models:
         models[name].model_validate(row["metadata_json"])
+    if name == "inference_runs":
+        run = InferenceRun.model_validate(row["metadata_json"])
+        if (
+            run.id != row["id"]
+            or run.snapshot.project_id != row["project_id"]
+            or run.snapshot.corpus.id != row["corpus_version_id"]
+            or run.parent_id != row["parent_id"]
+        ):
+            raise StorageError("Inference snapshot ownership/identity mismatch")
+    elif name == "inference_candidates":
+        candidate = InferenceCandidate.model_validate(row["metadata_json"])
+        if (
+            candidate.run_id != row["run_id"]
+            or candidate.family != row["family"]
+            or row["rank"] < 0
+        ):
+            raise StorageError("Inference candidate index mismatch")
+    elif name == "inference_evaluations":
+        evaluation = EvaluationRecord.model_validate(row["metadata_json"]).evaluation
+        if (
+            evaluation.id != row["id"]
+            or evaluation.candidate_id != row["candidate_id"]
+            or evaluation.snapshot.project_id != row["project_id"]
+            or evaluation.snapshot.corpus.id != row["corpus_version_id"]
+        ):
+            raise StorageError("Inference evaluation snapshot mismatch")
+    elif name == "inference_evidence":
+        if (
+            row["file_offset"] < 0
+            or not 0 < row["length"] <= 4 * 1024 * 1024
+            or row["ordinal"] < 0
+            or row["status"] not in {"passed", "failed", "unknown", "ambiguous", "not_applicable"}
+        ):
+            raise StorageError("Inference evidence index outside protective bounds")
     if name == "interpretation_versions":
         from uuid import uuid5
 
@@ -243,7 +288,7 @@ def copy_checked(
 def check_schema(connection):
     revisions = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
     if revisions != [SNAPSHOT_REVISION]:
-        raise StorageError("Destination/source PostgreSQL requires alembic upgrade head (0006)")
+        raise StorageError("Destination/source PostgreSQL requires alembic upgrade head (0007)")
 
 
 def snapshot(
@@ -464,6 +509,7 @@ def restore(projects, directory, cancelled=lambda: False):
     destination = projects.directory(project_id)
     owned = False
     counts = {name: 0 for name in TABLES}
+    expected_counts = {name: bundle.table_counts.get(name, 0) for name in TABLES}
     parent_updates = []
     refs = {"manifest.json", "metadata.jsonl"}
     try:
@@ -502,7 +548,7 @@ def restore(projects, directory, cancelled=lambda: False):
                     current, last = name, position
                 validate_metadata(name, row)
                 counts[name] += 1
-                if counts[name] > bundle.table_counts[name]:
+                if counts[name] > expected_counts[name]:
                     raise StorageError("Snapshot row count mismatch")
                 if name == "projects" and (
                     row["id"] != project_id
@@ -531,7 +577,7 @@ def restore(projects, directory, cancelled=lambda: False):
                 if len(batch) >= 500:
                     flush()
             flush()
-            if counts != bundle.table_counts or refs != set(bundle.members):
+            if counts != expected_counts or refs != set(bundle.members):
                 raise StorageError(
                     "Snapshot inventory does not match complete database/file snapshot"
                 )

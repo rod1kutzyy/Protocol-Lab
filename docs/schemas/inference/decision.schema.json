@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:inference-contracts-1:decision",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": {
+      "format": "uuid",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "idempotency_token": {
+      "format": "uuid",
+      "title": "Idempotency Token",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "deferred"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "rationale": {
+      "maxLength": 10000,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "interpretation_version_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Interpretation Version Id"
+    },
+    "hypothesis_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hypothesis Id"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "idempotency_token",
+    "created_at",
+    "decision",
+    "rationale"
+  ],
+  "title": "CandidateDecision",
+  "type": "object"
+}

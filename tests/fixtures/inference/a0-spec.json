@@ -1,0 +1,12 @@
+{
+  "schema_version": "inference-spec-1",
+  "corpus_version_id": "00000000-0000-0000-0000-000000000001",
+  "mode": "discover",
+  "detectors": [{"family": "framing"}, {"family": "structure"}],
+  "split": {
+    "unit": "capture",
+    "discovery_ids": ["00000000-0000-0000-0000-000000000010"],
+    "holdout_ids": ["00000000-0000-0000-0000-000000000020"]
+  },
+  "sampling": {"seed": 42}
+}

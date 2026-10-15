@@ -133,7 +133,13 @@ capture diagnostics, filtered scope и framing/source anchors. Ошибка от
 по sorted summaries, а не загружает все fields. Эти пределы защитные, не формат протокола.
 Linux workload/timings/peak RSS будут проверены на этапе 10.
 Миграция `0006_validation` добавляет четыре таблицы и не меняет прежнее evidence.
-Текущая версия движка — `validation-v2`: старые запуски `validation-v1` сохраняются
+Текущая версия движка — `validation-v3`: старые запуски `validation-v1`/`validation-v2` сохраняются
 и помечаются устаревшими. Новые поля JSON имеют совместимые значения по умолчанию;
 исторические снимки и архивы остаются читаемыми. Изменений SQL-схемы для этой коррекции нет.
+
+В A0 `technical_limit` проходит из общего framer/parser в results и summaries:
+исчерпание бюджета даёт Unknown, а не контрпример. Числа предела точные, старое
+отсутствующее поле имеет значение null; исторические statuses не переписываются.
+Сравнение учитывает изменение diagnostic и technical_limit. Движки framing/interpretation
+также получили новые версии. [Контракты и регрессии](inference-a0.md).
 Перенос, отчёт и CLI остаются для этапа 9. PPP/MPTCP/IPv6/AI/live capture не добавлялись.

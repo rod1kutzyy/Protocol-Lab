@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useWorkspaceState } from '@/shared/WorkspaceState'
+import { useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { request } from '@/shared/api'
@@ -8,7 +9,7 @@ import { ErrorMessage, More } from './Common'
 import type { components } from '@/shared/api-types'
 
 export function SourcesPanel({ range, projectId }: { range: Range; projectId: string }) {
-  const [page, setPage] = useState(0), [chosen, setChosen] = useState<Evidence | null>(null), [note, setNote] = useState(''), [rawStart, setRawStart] = useState(0)
+  const [page, setPage] = useWorkspaceState(`source:${range.streamId}:${range.version}:${range.start}:${range.end}:page`, 0), [chosen, setChosen] = useWorkspaceState<Evidence | null>(`source:${range.streamId}:${range.version}:${range.start}:${range.end}:chosen`, null), [note, setNote] = useWorkspaceState(`source:${range.streamId}:${range.version}:${range.start}:${range.end}:note`, ''), [rawStart, setRawStart] = useWorkspaceState(`source:${range.streamId}:${range.version}:${range.start}:${range.end}:rawStart`, 0)
   const left = range.start+page*4096, length = Math.min(4096, range.end-left)
   const bytes = useQuery({ queryKey: byteKey(range.streamId, left, length), queryFn: ({ signal }) => loadBytes(range.streamId, left, length, signal) })
   const sources = bytes.data?.blocks.flatMap(block => block.variants.flatMap(variant => variant.sources)) ?? []

@@ -7,13 +7,14 @@ from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
+from protocol_lab.domain.diagnostics import TechnicalLimit
 from protocol_lab.domain.models import Record, StreamRange
 from protocol_lab.framing.engine import FramingSpec
 from protocol_lab.interpretation.engine import DecodedField, UnknownRange
 
 Status = Literal["passed", "failed", "unknown", "ambiguous", "not_applicable"]
 STATUSES = ("passed", "failed", "unknown", "ambiguous", "not_applicable")
-VERSION = "validation-v2"
+VERSION = "validation-v3"
 
 
 class CorpusSpec(Record):
@@ -133,6 +134,7 @@ class ValidationItem(Record):
     diagnostic: str
     fields: tuple[DecodedField, ...] = ()
     unknown_ranges: tuple[UnknownRange, ...] = ()
+    technical_limit: TechnicalLimit | None = None
 
 
 class Coverage(Record):
@@ -186,6 +188,7 @@ class ValidationSummary(Record):
     field_count: int
     unknown_range_count: int
     values_sha256: str
+    technical_limit: TechnicalLimit | None = None
 
 
 class Currentness(Record):

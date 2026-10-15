@@ -61,3 +61,10 @@ tag=2 — два bytes. Count=2,1,0; значения -2, AB, 4660.
 length-big, новой arrays-new-parameters записи и length-incomplete.
 Модель показывает counterexamples на новых параметрах, без filename/action shortcuts.
 Команда и output format: [portability](../../docs/portability.md).
+## Контракты анализатора A0
+
+`inference/a0-spec.json` — воспроизводимый пример `inference-spec-1` с синтетическими
+UUID и explicit discovery/holdout split. Тесты создают соответствующие metadata
+snapshots в памяти; файл не требует пользовательского проекта или сетевого сервиса.
+Packet/provenance регрессия лимитов использует существующую
+`interpretation/arrays-new-parameters.pcap`; исходные байты fixture не меняются.

@@ -67,6 +67,50 @@ def test_corpus_runs_same_rules_and_reproduces_concrete_counterexample():
     assert result == list(validate_stream(*args))
 
 
+def test_resource_limit_is_not_a_corpus_counterexample_and_diagnostics_survive():
+    run, capture, stream, source, _ = inputs(b"\x03ABC", rule={"kind": "fixed", "size": 4})
+    document = dict(
+        schema_version="interpretation-1",
+        name="Array",
+        max_array_items=2,
+        framing=dict(rule={"kind": "fixed", "size": 4}),
+        fields=[
+            dict(kind="int", name="n", width=1, signed=False, endian="big"),
+            dict(
+                kind="array",
+                name="items",
+                count={"field": "n"},
+                fields=[dict(kind="int", name="v", width=1, signed=False, endian="big")],
+            ),
+        ],
+    )
+    model = ProtocolModel.model_validate(document)
+    result = list(validate_stream(run, capture, stream, source, model))[0]
+    assert result.status == "unknown" and result.technical_limit.name == "max_array_items"
+    assert result.fields[0].value == "3"
+    document["max_array_items"] = 3
+    assert (
+        list(validate_stream(run, capture, stream, source, ProtocolModel.model_validate(document)))[
+            0
+        ].status
+        == "passed"
+    )
+
+
+def test_framing_technical_limit_reaches_corpus_unknown_range():
+    run, capture, stream, source, model = inputs(
+        b"<abcdef>", rule=dict(kind="markers", start_hex="3c", end_hex="3e")
+    )
+    document = model.model_dump(mode="json")
+    document["framing"]["max_message_bytes"] = 4
+    result = list(
+        validate_stream(run, capture, stream, source, ProtocolModel.model_validate(document))
+    )[0]
+    assert result.status == "unknown" and result.kind == "leftover"
+    assert result.technical_limit.maximum == "4"
+    assert result.anchor.byte_range == ByteRange(start=0, end=8)
+
+
 def test_full_coverage_includes_unframed_leftover_and_empty_or_filtered_stream():
     args = inputs(b"HELLOWORLD!", rule={"kind": "fixed", "size": 5})
     result = list(validate_stream(*args))
@@ -176,6 +220,16 @@ def test_comparison_matches_source_ranges_not_new_message_ids():
     result = list(compare(iter(left), iter(right)))
     assert [r.change for r in result] == ["status", "values"]
     assert result[0].left.id != result[0].right.id
+
+
+def test_same_unknown_status_with_different_resource_limits_is_a_visible_difference():
+    from protocol_lab.domain.diagnostics import technical_limit
+
+    left = summary(uuid4(), uuid4(), 0, 5, status="unknown", diagnostic="max_array_items_exceeded")
+    left = left.model_copy(update={"technical_limit": technical_limit("max_array_items", 4, 2)})
+    right = left.model_copy(update={"technical_limit": technical_limit("max_array_items", 4, 3)})
+    changes = list(compare(iter([left]), iter([right])))
+    assert len(changes) == 1 and changes[0].change == "diagnostic"
 
 
 def test_reframed_ranges_are_added_removed_not_falsely_matched():

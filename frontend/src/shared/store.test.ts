@@ -37,3 +37,18 @@ test('late missing-project response does not clear a newly opened project', asyn
   expect(store.getState().projectId).toBe('new-project')
   expect(store.getState().captureId).toBe('new-capture')
 })
+
+test('reselecting the current context preserves its range and comparison reference', async () => {
+  const { store } = await selection()
+  const previous = store.getState()
+  previous.openProject('old-project')
+  store.getState().selectCapture('old-capture')
+  store.getState().selectSession('old-session', 'old-stream')
+  store.getState().selectStream('old-stream')
+  expect(store.getState().range).toEqual(previous.range)
+  expect(store.getState().reference).toEqual(previous.reference)
+  store.getState().selectCapture('another-capture')
+  expect(store.getState().range).toBeNull()
+  expect(store.getState().sessionId).toBeNull()
+  expect(store.getState().reference).toEqual(previous.reference)
+})

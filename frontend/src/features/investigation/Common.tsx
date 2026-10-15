@@ -2,6 +2,12 @@ import { useMutation } from '@tanstack/react-query'
 import { request, terminal, type Job } from '@/shared/api'
 import { Button } from '@/shared/ui/button'
 import { useSelection } from '@/shared/store'
+import type { components } from '@/shared/api-types'
+
+export function TechnicalLimitNotice({ limit }: { limit?: components['schemas']['TechnicalLimit'] | null }) {
+  if (!limit) return null
+  return <p className="notice">Достигнут технический лимит {limit.name}: {limit.observed_is_lower_bound ? 'не менее ' : ''}{limit.observed}, предел {limit.maximum}. Это ограничение проверки; противоречие протоколу не установлено.</p>
+}
 
 export function ErrorMessage({ error }: { error: unknown }) {
   return error ? <p role="alert" className="notice error">{error instanceof Error ? error.message : String(error)}</p> : null

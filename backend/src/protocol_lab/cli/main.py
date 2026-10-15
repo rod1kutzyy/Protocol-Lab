@@ -47,6 +47,16 @@ def main(argv=None):
     apply.add_argument("--capture", type=Path, required=True)
     apply.add_argument("--output", type=Path, required=True)
     apply.add_argument("--checksum-policy", choices=["warn", "ignore", "reject"], default="warn")
+    for name in ("infer", "evaluate-candidate"):
+        command = commands.add_parser(
+            name, help="Offline automatic analysis with the shared A1 engine"
+        )
+        command.add_argument("--capture", type=Path, action="append", required=True)
+        command.add_argument("--output", type=Path, required=True)
+        command.add_argument("--spec", type=Path, required=name == "infer")
+        command.add_argument("--holdout", type=Path, action="append", default=[])
+        if name == "evaluate-candidate":
+            command.add_argument("--candidate", type=Path, required=True)
     project = commands.add_parser(
         "project", help="Save, verify, export or restore a portable project"
     )
@@ -64,6 +74,34 @@ def main(argv=None):
     args = parser.parse_args(argv)
     engine = None
     try:
+        if args.command in {"infer", "evaluate-candidate"}:
+            from protocol_lab.inference.document import MAX_DOCUMENT_BYTES
+            from protocol_lab.services.inference_files import infer_files
+
+            for path in [args.spec, getattr(args, "candidate", None)]:
+                if path and path.stat().st_size > MAX_DOCUMENT_BYTES:
+                    raise ValueError("Inference input document exceeds 512 KiB")
+            settings = Settings.environment()
+            if (
+                sum(path.stat().st_size for path in [*args.capture, *args.holdout])
+                > settings.max_upload_bytes
+            ):
+                raise ValueError("Inference captures exceed configured combined input limit")
+            result = atomic_output(
+                args.output,
+                lambda output: infer_files(
+                    args.capture,
+                    args.spec.read_text() if args.spec else None,
+                    output,
+                    args.holdout,
+                    args.candidate.read_text() if args.command == "evaluate-candidate" else None,
+                    IndexSettings(
+                        max_packets=settings.max_packets, max_block_bytes=settings.max_block_bytes
+                    ),
+                ),
+            )
+            print(json.dumps({"output": str(args.output), "kind": result.__class__.__name__}))
+            return 0
         if args.command == "apply":
             if args.model.stat().st_size > 1024 * 1024:
                 raise ValueError("Model exceeds 1 MiB")

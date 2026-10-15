@@ -13,13 +13,13 @@ interface Selection {
 export const useSelection = create<Selection>()(persist((set, get) => ({
   jobId: null, projectId: null, captureId: null, sessionId: null, streamId: null, range: null, reference: null,
   selectJob: jobId => set({ jobId }),
-  openProject: projectId => set({ projectId, captureId: null, sessionId: null, streamId: null, range: null, reference: null }),
+  openProject: projectId => set(state => state.projectId === projectId ? state : { projectId, captureId: null, sessionId: null, streamId: null, range: null, reference: null }),
   forgetProject: id => set(state => state.projectId === id ? {
     jobId: null, projectId: null, captureId: null, sessionId: null, streamId: null,
     range: null, reference: null,
   } : state),
-  selectCapture: captureId => set({ captureId, sessionId: null, streamId: null, range: null }),
-  selectSession: (sessionId, streamId) => set({ sessionId, streamId, range: null }),
-  selectStream: streamId => set({ streamId, range: null }), selectRange: range => set({ range }),
+  selectCapture: captureId => set(state => state.captureId === captureId ? state : { captureId, sessionId: null, streamId: null, range: null }),
+  selectSession: (sessionId, streamId) => set(state => state.sessionId === sessionId && state.streamId === streamId ? state : { sessionId, streamId, range: null }),
+  selectStream: streamId => set(state => state.streamId === streamId ? state : { streamId, range: null }), selectRange: range => set({ range }),
   pin: () => set({ reference: get().range }),
 }), { name: 'protocol-lab-selection', partialize: s => ({ projectId: s.projectId, captureId: s.captureId, sessionId: s.sessionId, streamId: s.streamId, range: s.range, reference: s.reference }) }))

@@ -50,6 +50,25 @@ def minimal_bundle(tmp_path):
     return directory, bundle
 
 
+def test_legacy_0006_bundle_inventory_is_adapted_without_relabelling(tmp_path):
+    directory, bundle = minimal_bundle(tmp_path)
+    value = bundle.model_dump(mode="json")
+    value["format_version"] = 1
+    value["metadata_schema_revision"] = "0006_validation"
+    value["table_counts"] = {
+        name: count
+        for name, count in value["table_counts"].items()
+        if not name.startswith("inference_")
+    }
+    (directory / "bundle.json").write_text(json.dumps(value))
+    restored = verify_bundle(directory)
+    assert restored.format_version == 1 and restored.metadata_schema_revision == "0006_validation"
+    value["table_counts"]["inference_runs"] = 0
+    (directory / "bundle.json").write_text(json.dumps(value))
+    with pytest.raises(StorageError, match="manifest invalid"):
+        verify_bundle(directory)
+
+
 @pytest.mark.parametrize(
     "name",
     [
@@ -338,6 +357,41 @@ def test_cli_and_gui_reject_same_ambiguous_model_documents(tmp_path, capsys, pro
     assert not output.exists() and not list(tmp_path.glob(".protocol-lab-*"))
 
 
+def test_a0_cli_technical_limit_is_unknown_and_preserves_original_provenance(tmp_path):
+    from protocol_lab.interpretation.schema import ProtocolModel
+
+    model = dict(
+        schema_version="interpretation-1",
+        name="Array budget",
+        max_array_items=2,
+        framing=dict(rule=dict(kind="length", width=2, adjustment=2)),
+        fields=[
+            dict(kind="int", name="n", width=2, signed=False, endian="big"),
+            dict(
+                kind="array",
+                name="items",
+                count={"field": "n"},
+                fields=[dict(kind="int", name="v", width=1, signed=False, endian="big")],
+            ),
+        ],
+    )
+    source = FIXTURES / "interpretation/arrays-new-parameters.pcap"
+    before = source.read_bytes()
+    results = []
+    for limit in (2, 4):
+        model["max_array_items"] = limit
+        output = io.StringIO()
+        apply_capture(ProtocolModel.model_validate(model), source, output)
+        results.append(json.loads(output.getvalue()))
+    first, second = results
+    item = next(row for row in first["results"] if row["kind"] == "message")
+    assert item["status"] == "unknown"
+    assert item["technical_limit"]["observed"] == "4"
+    assert item["technical_limit"]["maximum"] == "2"
+    assert second["run"]["coverage"]["message_counts"]["passed"] == 1
+    assert first["provenance"] == second["provenance"] and source.read_bytes() == before
+
+
 def test_historical_validation_json_without_new_fields_remains_exportable(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
@@ -358,6 +412,7 @@ def test_historical_validation_json_without_new_fields_remains_exportable(tmp_pa
         legacy["run"]["coverage"].pop(key)
     for item in legacy["results"]:
         item.pop("direction")
+        item.pop("technical_limit")
     artifact = tmp_path / "legacy.jsonl"
     artifact.write_text(
         json.dumps(legacy["run"])

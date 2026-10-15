@@ -10,6 +10,7 @@ from sqlalchemy import func, insert, select, text
 from sqlalchemy.orm import Session
 
 from protocol_lab.capture.index import sha256_file
+from protocol_lab.domain.diagnostics import TechnicalLimit
 from protocol_lab.domain.models import InterpretationVersion, Record, StreamRange
 from protocol_lab.framing.engine import Piece
 from protocol_lab.interpretation.document import load_model
@@ -36,6 +37,7 @@ class MessageSummary(Record):
     diagnostic: str
     field_count: int
     unknown_range_count: int
+    technical_limit: TechnicalLimit | None = None
 
 
 class DecodeRun(Record):

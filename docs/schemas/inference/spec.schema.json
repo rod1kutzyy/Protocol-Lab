@@ -1,0 +1,800 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:protocol-lab:inference-contracts-1:spec",
+  "$defs": {
+    "ByteRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "ByteRange",
+      "type": "object"
+    },
+    "DataSplit": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "default": "capture",
+          "enum": [
+            "capture",
+            "session"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "discovery_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 1,
+          "title": "Discovery Ids",
+          "type": "array"
+        },
+        "holdout_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Holdout Ids",
+          "type": "array"
+        },
+        "holdout_unavailable_reason": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Unavailable Reason"
+        }
+      },
+      "required": [
+        "discovery_ids"
+      ],
+      "title": "DataSplit",
+      "type": "object"
+    },
+    "DetectorRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "enum": [
+            "framing",
+            "structure",
+            "groups",
+            "counters",
+            "tokens",
+            "checksums",
+            "timestamps",
+            "entropy",
+            "events",
+            "data_mapping"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "inference-detector-1",
+          "default": "inference-detector-1",
+          "title": "Contract Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family"
+      ],
+      "title": "DetectorRequest",
+      "type": "object"
+    },
+    "LogInput": {
+      "additionalProperties": false,
+      "properties": {
+        "log_id": {
+          "format": "uuid",
+          "title": "Log Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "clock_revision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Clock Revision",
+          "type": "integer"
+        },
+        "clock_offset_ns": {
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Clock Offset Ns",
+          "type": "string"
+        },
+        "timestamp_field": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Timestamp Field",
+          "type": "string"
+        },
+        "label_field": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label Field",
+          "type": "string"
+        },
+        "parameters_field": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parameters Field"
+        },
+        "timestamp_format": {
+          "enum": [
+            "iso8601",
+            "unix_s",
+            "unix_ms",
+            "unix_ns"
+          ],
+          "title": "Timestamp Format",
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "csv",
+            "json"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "delimiter": {
+          "default": ",",
+          "enum": [
+            ",",
+            ";",
+            "\t"
+          ],
+          "title": "Delimiter",
+          "type": "string"
+        }
+      },
+      "required": [
+        "log_id",
+        "sha256",
+        "clock_revision",
+        "clock_offset_ns",
+        "timestamp_field",
+        "label_field",
+        "timestamp_format",
+        "format"
+      ],
+      "title": "LogInput",
+      "type": "object"
+    },
+    "ParameterInput": {
+      "additionalProperties": false,
+      "properties": {
+        "log_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log Id"
+        },
+        "event_ids": {
+          "default": [],
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "title": "Event Ids",
+          "type": "array"
+        },
+        "parameter_path": {
+          "default": [],
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Parameter Path",
+          "type": "array"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "title": "ParameterInput",
+      "type": "object"
+    },
+    "RecordingGroup": {
+      "additionalProperties": false,
+      "description": "Explicit knowledge that captures observe the same traffic; never inferred from labels.",
+      "properties": {
+        "capture_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10000,
+          "minItems": 2,
+          "title": "Capture Ids",
+          "type": "array"
+        },
+        "rationale": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capture_ids",
+        "rationale"
+      ],
+      "title": "RecordingGroup",
+      "type": "object"
+    },
+    "SamplingSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "seed": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "strategy": {
+          "const": "stratified_hash_round_robin_v1",
+          "default": "stratified_hash_round_robin_v1",
+          "title": "Strategy",
+          "type": "string"
+        },
+        "deduplication": {
+          "const": "payload_sha256",
+          "default": "payload_sha256",
+          "title": "Deduplication",
+          "type": "string"
+        }
+      },
+      "title": "SamplingSpec",
+      "type": "object"
+    },
+    "SearchBudget": {
+      "additionalProperties": false,
+      "description": "Finite operation counts, not assumptions about the investigated protocol.",
+      "properties": {
+        "max_sample_messages": {
+          "default": 5000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Sample Messages",
+          "type": "integer"
+        },
+        "max_sample_units": {
+          "default": 100000,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Sample Units",
+          "type": "integer"
+        },
+        "max_scanned_bytes": {
+          "default": 104857600,
+          "maximum": 1099511627776,
+          "minimum": 1,
+          "title": "Max Scanned Bytes",
+          "type": "integer"
+        },
+        "max_header_bytes": {
+          "default": 64,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Max Header Bytes",
+          "type": "integer"
+        },
+        "max_candidates_per_family": {
+          "default": 200,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Candidates Per Family",
+          "type": "integer"
+        },
+        "max_candidates": {
+          "default": 2000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Candidates",
+          "type": "integer"
+        },
+        "max_framing_alternatives": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Framing Alternatives",
+          "type": "integer"
+        },
+        "max_refinement_iterations": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Max Refinement Iterations",
+          "type": "integer"
+        },
+        "max_evidence_bytes": {
+          "default": 268435456,
+          "maximum": 4294967296,
+          "minimum": 1,
+          "title": "Max Evidence Bytes",
+          "type": "integer"
+        },
+        "max_decoded_field_bytes": {
+          "default": 1048576,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Max Decoded Field Bytes",
+          "type": "integer"
+        },
+        "max_alignment_cells": {
+          "default": 1000000,
+          "maximum": 100000000,
+          "minimum": 1,
+          "title": "Max Alignment Cells",
+          "type": "integer"
+        },
+        "max_candidate_evaluations": {
+          "default": 100000,
+          "maximum": 10000000,
+          "minimum": 1,
+          "title": "Max Candidate Evaluations",
+          "type": "integer"
+        },
+        "max_checksum_operations": {
+          "default": 1000000,
+          "maximum": 100000000,
+          "minimum": 1,
+          "title": "Max Checksum Operations",
+          "type": "integer"
+        },
+        "max_event_windows": {
+          "default": 100000,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Event Windows",
+          "type": "integer"
+        },
+        "max_rule_trials": {
+          "default": 20000,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Rule Trials",
+          "type": "integer"
+        },
+        "max_probe_bytes": {
+          "default": 65536,
+          "maximum": 1048576,
+          "minimum": 64,
+          "title": "Max Probe Bytes",
+          "type": "integer"
+        },
+        "max_message_bytes": {
+          "default": 1048576,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Max Message Bytes",
+          "type": "integer"
+        },
+        "max_marker_positions": {
+          "default": 4096,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Marker Positions",
+          "type": "integer"
+        },
+        "max_probe_streams": {
+          "default": 8,
+          "maximum": 128,
+          "minimum": 1,
+          "title": "Max Probe Streams",
+          "type": "integer"
+        },
+        "max_screen_messages": {
+          "default": 64,
+          "maximum": 4096,
+          "minimum": 3,
+          "title": "Max Screen Messages",
+          "type": "integer"
+        },
+        "max_marker_occurrences": {
+          "default": 32,
+          "maximum": 4096,
+          "minimum": 3,
+          "title": "Max Marker Occurrences",
+          "type": "integer"
+        },
+        "max_shortlist_per_kind": {
+          "default": 48,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Shortlist Per Kind",
+          "type": "integer"
+        }
+      },
+      "title": "SearchBudget",
+      "type": "object"
+    },
+    "SearchSpace": {
+      "additionalProperties": false,
+      "properties": {
+        "fixed_size_min": {
+          "default": 1,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Fixed Size Min",
+          "type": "integer"
+        },
+        "fixed_size_max": {
+          "default": 4096,
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Fixed Size Max",
+          "type": "integer"
+        },
+        "multiplier_min": {
+          "default": 1,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier Min",
+          "type": "integer"
+        },
+        "multiplier_max": {
+          "default": 4,
+          "maximum": 65536,
+          "minimum": 1,
+          "title": "Multiplier Max",
+          "type": "integer"
+        },
+        "adjustment_min": {
+          "default": -64,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment Min",
+          "type": "integer"
+        },
+        "adjustment_max": {
+          "default": 64,
+          "maximum": 16777216,
+          "minimum": -16777216,
+          "title": "Adjustment Max",
+          "type": "integer"
+        },
+        "marker_max_bytes": {
+          "default": 16,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Marker Max Bytes",
+          "type": "integer"
+        },
+        "min_repeated_messages": {
+          "default": 3,
+          "maximum": 1000,
+          "minimum": 2,
+          "title": "Min Repeated Messages",
+          "type": "integer"
+        },
+        "min_unique_messages": {
+          "default": 2,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Min Unique Messages",
+          "type": "integer"
+        },
+        "max_marker_patterns": {
+          "default": 16,
+          "maximum": 128,
+          "minimum": 1,
+          "title": "Max Marker Patterns",
+          "type": "integer"
+        },
+        "widths": {
+          "default": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "items": {
+            "enum": [
+              1,
+              2,
+              4,
+              8
+            ],
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Widths",
+          "type": "array"
+        },
+        "endians": {
+          "default": [
+            "big",
+            "little"
+          ],
+          "items": {
+            "enum": [
+              "big",
+              "little"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Endians",
+          "type": "array"
+        }
+      },
+      "title": "SearchSpace",
+      "type": "object"
+    },
+    "StreamRange": {
+      "additionalProperties": false,
+      "properties": {
+        "stream_id": {
+          "format": "uuid",
+          "title": "Stream Id",
+          "type": "string"
+        },
+        "reconstruction_version": {
+          "title": "Reconstruction Version",
+          "type": "string"
+        },
+        "byte_range": {
+          "$ref": "#/$defs/ByteRange"
+        }
+      },
+      "required": [
+        "stream_id",
+        "reconstruction_version",
+        "byte_range"
+      ],
+      "title": "StreamRange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "inference-spec-1",
+      "default": "inference-spec-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "corpus_version_id": {
+      "format": "uuid",
+      "title": "Corpus Version Id",
+      "type": "string"
+    },
+    "mode": {
+      "default": "discover",
+      "enum": [
+        "discover",
+        "evaluate"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "candidate_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Candidate Ids",
+      "type": "array"
+    },
+    "detectors": {
+      "items": {
+        "$ref": "#/$defs/DetectorRequest"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Detectors",
+      "type": "array"
+    },
+    "split": {
+      "$ref": "#/$defs/DataSplit"
+    },
+    "sampling": {
+      "$ref": "#/$defs/SamplingSpec"
+    },
+    "budget": {
+      "$ref": "#/$defs/SearchBudget"
+    },
+    "search": {
+      "$ref": "#/$defs/SearchSpace"
+    },
+    "framing_version_ids": {
+      "default": [],
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "maxItems": 10000,
+      "title": "Framing Version Ids",
+      "type": "array"
+    },
+    "interpretation_version_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Interpretation Version Id"
+    },
+    "assumptions": {
+      "default": [],
+      "items": {
+        "maxLength": 10000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "known_markers": {
+      "default": [],
+      "items": {
+        "maxLength": 128,
+        "pattern": "^(?:[0-9a-fA-F]{2})+$",
+        "type": "string"
+      },
+      "maxItems": 128,
+      "title": "Known Markers",
+      "type": "array"
+    },
+    "excluded_ranges": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/StreamRange"
+      },
+      "maxItems": 10000,
+      "title": "Excluded Ranges",
+      "type": "array"
+    },
+    "recording_groups": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RecordingGroup"
+      },
+      "maxItems": 1000,
+      "title": "Recording Groups",
+      "type": "array"
+    },
+    "logs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LogInput"
+      },
+      "maxItems": 128,
+      "title": "Logs",
+      "type": "array"
+    },
+    "parameters": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ParameterInput"
+      },
+      "maxItems": 128,
+      "title": "Parameters",
+      "type": "array"
+    },
+    "event_before_ns": {
+      "default": 0,
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "title": "Event Before Ns",
+      "type": "integer"
+    },
+    "event_after_ns": {
+      "default": 1000000000,
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "title": "Event After Ns",
+      "type": "integer"
+    },
+    "checksum_algorithms": {
+      "default": [
+        "xor8",
+        "sum8",
+        "sum16",
+        "internet_checksum",
+        "CRC-8/SMBUS",
+        "CRC-16/ARC",
+        "CRC-16/IBM-3740",
+        "CRC-16/IBM-SDLC",
+        "CRC-32/ISO-HDLC"
+      ],
+      "items": {
+        "enum": [
+          "xor8",
+          "sum8",
+          "sum16",
+          "internet_checksum",
+          "CRC-8/SMBUS",
+          "CRC-16/ARC",
+          "CRC-16/IBM-3740",
+          "CRC-16/IBM-SDLC",
+          "CRC-32/ISO-HDLC"
+        ],
+        "type": "string"
+      },
+      "title": "Checksum Algorithms",
+      "type": "array"
+    }
+  },
+  "required": [
+    "corpus_version_id",
+    "detectors",
+    "split"
+  ],
+  "title": "InferenceSpec",
+  "type": "object"
+}

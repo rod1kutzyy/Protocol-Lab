@@ -16,11 +16,12 @@ from construct import (
 )
 
 from protocol_lab.capture.index import WorkCancelled
+from protocol_lab.domain.diagnostics import TechnicalLimit, technical_limit
 from protocol_lab.domain.models import ByteRange, Record, StreamRange
 from protocol_lab.framing.engine import CHUNK, Piece, StreamInput
 from protocol_lab.interpretation.schema import ArrayField, BytesField, IntField, SwitchField
 
-VERSION = "interpretation-v1"
+VERSION = "interpretation-v2"
 
 
 class DecodedField(Record):
@@ -45,11 +46,22 @@ class MessageResult(Record):
     diagnostic: str
     fields: tuple[DecodedField, ...]
     unknown_ranges: tuple[UnknownRange, ...]
+    technical_limit: TechnicalLimit | None = None
 
 
 class Problem(Exception):
-    def __init__(self, code):
+    def __init__(self, code, limit=None):
         self.code = code
+        self.limit = limit
+
+
+def problem_status(problem):
+    return (
+        "unknown"
+        if problem.limit is not None
+        or problem.code in {"unconfigured_variant", "field_has_unavailable_or_ambiguous_bytes"}
+        else "failed"
+    )
 
 
 class Input(io.RawIOBase):
@@ -85,10 +97,12 @@ class Input(io.RawIOBase):
         return b"".join(chunks)
 
 
-def amount(expr, context, maximum):
+def amount(expr, context, maximum, limit_name="max_message_bytes"):
     value = expr if isinstance(expr, int) else context[expr.field] * expr.multiplier + expr.add
-    if value < 0 or value > maximum:
-        raise Problem("computed_length_or_count_outside_limit")
+    if value < 0:
+        raise Problem("negative_computed_length_or_count")
+    if value > maximum:
+        raise Problem(f"{limit_name}_exceeded", technical_limit(limit_name, value, maximum))
     return value
 
 
@@ -118,7 +132,10 @@ class Traced(Subconstruct):
             raise WorkCancelled
         tracker["count"] += 1
         if tracker["count"] > tracker["limit"]:
-            raise Problem("max_decoded_fields_exceeded")
+            raise Problem(
+                "max_decoded_fields_exceeded",
+                technical_limit("max_decoded_fields", tracker["count"], tracker["limit"]),
+            )
         field = self.field
         start = stream.tell()
         tracker["path"].append(field.name)
@@ -201,7 +218,9 @@ def compile_model(model):
                 subcon = Bytes(length)
             elif isinstance(field, ArrayField):
                 subcon = Array(
-                    lambda ctx, expr=field.count: amount(expr, ctx, model.max_array_items),
+                    lambda ctx, expr=field.count: amount(
+                        expr, ctx, model.max_array_items, "max_array_items"
+                    ),
                     Item(structure(field.fields)),
                 )
             else:
@@ -230,10 +249,12 @@ def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=la
     )
     length = interval.end - interval.start
     position, diagnostic = 0, "rules_executed"
+    limit = piece.technical_limit
     if piece.kind != "message":
         status, diagnostic = "not_applicable", "unframed_data"
     elif length > model.framing.max_message_bytes:
         status, diagnostic = "unknown", "max_message_bytes_exceeded"
+        limit = technical_limit("max_message_bytes", length, model.framing.max_message_bytes)
     else:
         stream = Input(source, interval.start, interval.end, cancelled)
         try:
@@ -254,26 +275,18 @@ def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=la
         except Problem as exc:
             diagnostic = exc.code
             position = tracker["consumed"]
-            status = (
-                "unknown"
-                if diagnostic
-                in {
-                    "unconfigured_variant",
-                    "field_has_unavailable_or_ambiguous_bytes",
-                    "max_decoded_fields_exceeded",
-                }
-                else "failed"
-            )
+            status, limit = problem_status(exc), exc.limit
         except ConstructError:
             if isinstance(stream.error, WorkCancelled):
                 raise stream.error from None
-            diagnostic = (
-                stream.error.code if isinstance(stream.error, Problem) else "construct_parse_failed"
+            problem = (
+                stream.error
+                if isinstance(stream.error, Problem)
+                else Problem("construct_parse_failed")
             )
+            diagnostic = problem.code
             position = tracker["consumed"]
-            status = (
-                "unknown" if diagnostic == "field_has_unavailable_or_ambiguous_bytes" else "failed"
-            )
+            status, limit = problem_status(problem), problem.limit
         # Data uncertainty takes precedence over claiming a complete rule success.
         data_status = source.status(interval.start, interval.end)
         if data_status in {"ambiguous", "mixed"}:
@@ -319,4 +332,5 @@ def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=la
         diagnostic=diagnostic,
         fields=tuple(fields),
         unknown_ranges=tuple(unknown),
+        technical_limit=limit,
     )

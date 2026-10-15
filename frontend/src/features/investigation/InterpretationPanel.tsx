@@ -1,3 +1,4 @@
+import { useWorkspaceState } from '@/shared/WorkspaceState'
 import { useEffect, useRef, useState } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -9,7 +10,7 @@ import type { components } from '@/shared/api-types'
 import { useSelection } from '@/shared/store'
 import { Button } from '@/shared/ui/button'
 import { json, useJob, usePages, type Stream } from './data'
-import { ErrorMessage, JobStatus, More } from './Common'
+import { ErrorMessage, JobStatus, More, TechnicalLimitNotice } from './Common'
 import { sampleModel, modelSignature, formatModel, replaceFraming } from './interpretation-config'
 
 type Version = components['schemas']['StoredInterpretation']
@@ -22,12 +23,12 @@ const statuses = { passed: 'Правила выполнены', failed: 'Про�
 const kinds = { int: 'Целое', bytes: 'Байты HEX', array: 'Массив: число элементов', switch: 'Вариант: значение селектора' }
 const reasons: Record<string, string> = { uninterpreted: 'Байты не описаны моделью', gap: 'Байты отсутствуют в записи', truncated: 'Усечённый пакет', ambiguous: 'Конфликтующие варианты байтов' }
 
-export function InterpretationPanel({ stream, framing }: { stream: Stream; framing: FramingRun }) {
+export function InterpretationPanel({ stream, framing, onNavigate }: { stream: Stream; framing: FramingRun; onNavigate: (anchor: components['schemas']['StreamRange']) => void }) {
   const state = useSelection(), client = useQueryClient()
-  const [text, setText] = useState(() => sampleModel(framing.spec))
-  const [versionId, setVersionId] = useState<string | null>(null)
-  const [runId, setRunId] = useState<string | null>(null), [pieceId, setPieceId] = useState<string | null>(null)
-  const [jobId, setJobId] = useState<string | null>(null), [localError, setLocalError] = useState<Error | null>(null)
+  const [text, setText] = useWorkspaceState(`interpretation:${framing.id}:text`, () => sampleModel(framing.spec))
+  const [versionId, setVersionId] = useWorkspaceState<string | null>(`interpretation:${framing.id}:versionId`, null)
+  const [runId, setRunId] = useWorkspaceState<string | null>(`interpretation:${framing.id}:runId`, null), [pieceId, setPieceId] = useWorkspaceState<string | null>(`interpretation:${framing.id}:pieceId`, null)
+  const [jobId, setJobId] = useWorkspaceState<string | null>(`interpretation:${framing.id}:jobId`, null), [localError, setLocalError] = useState<Error | null>(null)
   const [mounted, setMounted] = useState(false)
   const editor = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null), monaco = useRef<typeof Monaco | null>(null)
   const path = `inmemory://protocol-lab/${framing.id}/interpretation.json`
@@ -40,7 +41,7 @@ export function InterpretationPanel({ stream, framing }: { stream: Stream; frami
   const busy = !!jobId && (!job.data || !terminal(job.data.status))
   const apply = useMutation({ mutationFn: () => request<Job>(`/framing-runs/${framing.id}/interpretations`, json({ version_id: versionId })), onSuccess: j => { setJobId(j.id); state.selectJob(j.id) } })
   const rebuild = useMutation({ mutationFn: () => { const document = JSON.parse(selectedVersion.data!.document_json); return request<Job>(`/streams/${stream.id}/framing`, json(document.framing)) }, onSuccess: j => { state.selectJob(j.id); setRebuildJobId(j.id) } })
-  const [rebuildJobId, setRebuildJobId] = useState<string | null>(null)
+  const [rebuildJobId, setRebuildJobId] = useWorkspaceState<string | null>(`interpretation:${framing.id}:rebuildJobId`, null)
   const rebuildJob = useJob(rebuildJobId, () => {})
   const runs = usePages<Run>(['interpretation-runs', framing.id], `/framing-runs/${framing.id}/interpretations`)
   const selectedRun = useQuery({ queryKey: ['interpretation-run', runId], queryFn: () => request<Run>(`/interpretation-runs/${runId}`), enabled: !!runId })
@@ -77,8 +78,7 @@ export function InterpretationPanel({ stream, framing }: { stream: Stream; frami
     }))
   }, [issues, text, mounted])
   function navigate(anchor: components['schemas']['StreamRange']) {
-    state.selectRange({ streamId: anchor.stream_id, version: anchor.reconstruction_version, start: anchor.byte_range.start, end: anchor.byte_range.end })
-    document.getElementById(`stream-hex-${stream.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    onNavigate(anchor)
   }
   return <section className="stack interpretation-panel" aria-label="Модель протокола"><h3>Интерпретация — поля и правила</h3>
     <p className="muted text-xs">Значения получены исполнением модели. Имена полей задаёт инженер; смысл поля остаётся предположением. Все смещения относятся к исходному потоку, [start, end).</p>
@@ -92,10 +92,11 @@ export function InterpretationPanel({ stream, framing }: { stream: Stream; frami
     <JobStatus job={job.data} /><JobStatus job={rebuildJob.data} />{rebuildJob.data?.status === 'succeeded' && <p className="notice">Фрейминг построен. Выберите его в списке результатов выше, затем откройте сохранённую модель.</p>}
     <ErrorMessage error={localError ?? schema.error ?? versions.error ?? selectedVersion.error ?? check.error ?? save.error ?? apply.error ?? rebuild.error ?? rebuildJob.error ?? job.error ?? runs.error ?? selectedRun.error ?? summaries.error ?? result.error} />
     <div className="form-row"><label>Сохранённый разбор<select value={runId ?? ''} onChange={e => { setRunId(e.target.value || null); setPieceId(null) }}><option value="">Выберите разбор</option>{runOptions.map(r => <option key={r.id} value={r.id}>Модель {r.version_id.slice(0, 8)} · результат {r.id.slice(0, 8)}</option>)}</select></label><More query={runs} /></div>
-    {selectedRun.data && <><p className="notice">Разбор относится к модели {selectedRun.data.version_id.slice(0, 8)} и фреймингу {selectedRun.data.framing_run_id.slice(0, 8)}. Это исполнение на выбранном потоке; проверка корпуса будет отдельным этапом. {Object.entries(selectedRun.data.counts).map(([k, n]) => `${statuses[k as keyof typeof statuses]}: ${n}`).join(' · ')}</p>
+    {selectedRun.data && <><p className="notice">Разбор относится к модели {selectedRun.data.version_id.slice(0, 8)} и фреймингу {selectedRun.data.framing_run_id.slice(0, 8)}. Это исполнение на выбранном потоке; весь корпус проверяется в разделе «Проверка». {Object.entries(selectedRun.data.counts).map(([k, n]) => `${statuses[k as keyof typeof statuses]}: ${n}`).join(' · ')}</p>
       <div ref={messageScroll} className="framing-list" role="list" aria-label="Результаты разбора"><div style={{ height: messages.getTotalSize(), position: 'relative' }}>{messages.getVirtualItems().map(row => { const item = items[row.index], r = item.anchor.byte_range; return <button role="listitem" key={item.piece_id} className={`framing-row ${pieceId === item.piece_id ? 'selected' : ''}`} style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => setPieceId(item.piece_id)}><strong>[{r.start}, {r.end}) · {statuses[item.status]}</strong><span>{item.diagnostic}</span><small>Полей: {item.field_count}. Неразобранных диапазонов: {item.unknown_range_count}. Открыть значения</small></button> })}</div></div><More query={summaries} />
       {result.data && <div className="stack"><div className="form-row"><h4>Извлечённые значения</h4><Button size="sm" variant="outline" onClick={() => navigate(result.data!.anchor)}>Сообщение → bytes и пакеты</Button></div><p className="muted text-xs">Целые показаны точными десятичными строками. HEX содержит до 64 байтов предпросмотра; полный диапазон доступен по клику.</p>
         <div className="decoded-list" ref={fieldScroll} role="list" aria-label="Поля модели"><div style={{ height: fieldRows.getTotalSize(), position: 'relative' }}>{fieldRows.getVirtualItems().map(row => { const f = fields[row.index]; return <button role="listitem" key={f.path} disabled={!f.anchor} className="framing-row" style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => f.anchor && navigate(f.anchor)}><strong>{f.path} = {f.value || '(пусто)'}{f.preview_truncated ? '…' : ''}</strong><small>{kinds[f.kind]} · [{f.offset}, {f.offset + f.length}) · {f.length} bytes{f.anchor ? ' · Открыть источник' : ' · Пустое поле'}</small></button> })}</div>{!fields.length && <p className="muted p-3">Нет извлечённых полей.</p>}</div>
+        <TechnicalLimitNotice limit={result.data.technical_limit} />
         <h4>Неизвестные и неописанные участки</h4>{unknown.length ? <div className="decoded-list" ref={unknownScroll} role="list" aria-label="Неизвестные участки"><div style={{ height: unknownRows.getTotalSize(), position: 'relative' }}>{unknownRows.getVirtualItems().map(row => { const u = unknown[row.index], r = u.anchor.byte_range; return <button role="listitem" key={r.start} className="framing-row leftover" style={{ height: row.size, transform: `translateY(${row.start}px)` }} onClick={() => navigate(u.anchor)}><strong>[{r.start}, {r.end})</strong><small>{reasons[u.reason] ?? u.reason} · Открыть bytes и источники</small></button> })}</div></div> : <p className="muted">Неразобранных участков нет.</p>}
       </div>}
     </>}

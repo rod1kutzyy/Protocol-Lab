@@ -172,4 +172,37 @@ protocol-lab apply --model model.json --capture new.pcap --output validation.jso
 ```
 
 CLI использует общие движки восстановления, framing и Construct.
-Для восстановления архива требуется локальный PostgreSQL с миграциями 0006 и установленное приложение.
+Для восстановления архива требуется локальный PostgreSQL с миграциями 0007 и установленное приложение.
+
+## Автоматические кандидаты (A1)
+
+Автоматическое предложение не подтверждает смысл поля. Discovery и проверка
+зафиксированного правила сохранены отдельно; технический лимит не отвергает протокол.
+{% for run in inference_runs %}
+### Запуск {{ run.id | md }}
+
+Корпус: {{ run.snapshot.corpus.name | md }}. Кандидатов: {{ run.candidate_count }}.
+Полнота заданного поиска: {{ run.search_complete }}. Вариантов: {{ run.rule_trials }}.
+Semantic SHA-256: {{ run.semantic_sha256 | md }}.
+
+```json
+{{ run.coverage | pretty }}
+```
+{% for candidate in inference_candidates if candidate.run_id == run.id %}
+#### {{ candidate.rule.kind | md }} — {{ candidate.id | md }}
+
+{{ candidate.rationale | md }}
+
+```json
+{{ candidate.rule | pretty }}
+```
+{% for evaluation in inference_evaluations if evaluation.evaluation.candidate_id == candidate.id %}
+Проверка {{ evaluation.evaluation.id | md }}: {{ evaluation.evaluation.independence | md }}.
+{{ evaluation.evaluation.independence_reason | md }}
+
+```json
+{{ evaluation.evaluation.metrics | pretty }}
+```
+{% endfor %}
+{% endfor %}
+{% endfor %}

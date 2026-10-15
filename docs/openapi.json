@@ -3218,6 +3218,861 @@
         }
       }
     },
+    "/api/v1/inference/capabilities": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Capabilities",
+        "operationId": "capabilities_api_v1_inference_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceCapabilities"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference/schemas/{name}": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Schema",
+        "operationId": "schema_api_v1_inference_schemas__name__get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "spec",
+                "snapshot",
+                "rule",
+                "candidate",
+                "run",
+                "evidence",
+                "evaluation",
+                "decision",
+                "transform"
+              ],
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Schema Api V1 Inference Schemas  Name  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference/spec/check": {
+      "post": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Check",
+        "operationId": "check_api_v1_inference_spec_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecDocument"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecCheck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/inference-runs": {
+      "post": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Discover",
+        "operationId": "discover_api_v1_projects__project_id__inference_runs_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Runs",
+        "operationId": "runs_api_v1_projects__project_id__inference_runs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceRunList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-runs/{id}": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Run",
+        "operationId": "run_api_v1_inference_runs__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceRun"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-runs/{id}/currentness": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Currentness",
+        "operationId": "currentness_api_v1_inference_runs__id__currentness_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceCurrentness"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-runs/{id}/candidates": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Candidates",
+        "operationId": "candidates_api_v1_inference_runs__id__candidates_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "family",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "framing",
+                    "structure",
+                    "groups",
+                    "counters",
+                    "tokens",
+                    "checksums",
+                    "timestamps",
+                    "entropy",
+                    "events",
+                    "data_mapping"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-candidates/{id}": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Candidate",
+        "operationId": "candidate_api_v1_inference_candidates__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceCandidate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-candidates/{id}/evidence": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Evidence",
+        "operationId": "evidence_api_v1_inference_candidates__id__evidence_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "unknown",
+                    "ambiguous",
+                    "not_applicable"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "evaluation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Evaluation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-candidates/{id}/model-draft": {
+      "post": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Draft",
+        "operationId": "draft_api_v1_inference_candidates__id__model_draft_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-candidates/{id}/evaluations": {
+      "post": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Evaluate Candidate",
+        "operationId": "evaluate_candidate_api_v1_inference_candidates__id__evaluations_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Evaluations",
+        "operationId": "evaluations_api_v1_inference_candidates__id__evaluations_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-evaluations/{id}": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Evaluation",
+        "operationId": "evaluation_api_v1_inference_evaluations__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inference-evaluations/{id}/results": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Evaluation Results",
+        "operationId": "evaluation_results_api_v1_inference_evaluations__id__results_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "unknown",
+                    "ambiguous",
+                    "not_applicable"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health",
@@ -3651,6 +4506,395 @@
         ],
         "title": "ByteVariant"
       },
+      "CandidateEvaluation": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "inference-evaluation-1",
+            "title": "Schema Version",
+            "default": "inference-evaluation-1"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Candidate Id"
+          },
+          "rule_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Rule Sha256"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/InferenceSnapshot"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/InferenceMetrics"
+          },
+          "independence": {
+            "type": "string",
+            "enum": [
+              "independent",
+              "exploratory",
+              "unverified"
+            ],
+            "title": "Independence"
+          },
+          "independence_reason": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Independence Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "candidate_id",
+          "rule_sha256",
+          "snapshot",
+          "metrics",
+          "independence",
+          "independence_reason"
+        ],
+        "title": "CandidateEvaluation"
+      },
+      "CandidateEvidence": {
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Candidate Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "unknown",
+              "ambiguous",
+              "not_applicable"
+            ],
+            "title": "Status"
+          },
+          "anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StreamRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRange"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Sources",
+            "default": []
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "diagnostic": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Diagnostic"
+          },
+          "preview_hex": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^(?:[0-9a-fA-F]{2})*$",
+            "title": "Preview Hex",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "status",
+          "diagnostic"
+        ],
+        "title": "CandidateEvidence"
+      },
+      "CandidateInput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256"
+          },
+          "rule_schema_version": {
+            "type": "string",
+            "const": "inference-rule-1",
+            "title": "Rule Schema Version",
+            "default": "inference-rule-1"
+          },
+          "rule": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FramingCandidateRule"
+              },
+              {
+                "$ref": "#/components/schemas/RegionRule"
+              },
+              {
+                "$ref": "#/components/schemas/LengthRelationRule"
+              },
+              {
+                "$ref": "#/components/schemas/DelimiterRule"
+              },
+              {
+                "$ref": "#/components/schemas/GroupRule"
+              },
+              {
+                "$ref": "#/components/schemas/CounterRule"
+              },
+              {
+                "$ref": "#/components/schemas/ChecksumRule"
+              },
+              {
+                "$ref": "#/components/schemas/TimestampRule"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileRule"
+              },
+              {
+                "$ref": "#/components/schemas/EventRule"
+              },
+              {
+                "$ref": "#/components/schemas/MappingRule"
+              }
+            ],
+            "title": "Rule",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "byte_profile": "#/components/schemas/ProfileRule",
+                "checksum_relation": "#/components/schemas/ChecksumRule",
+                "constant_region": "#/components/schemas/RegionRule",
+                "copied_value": "#/components/schemas/RegionRule",
+                "counter": "#/components/schemas/CounterRule",
+                "end_marker": "#/components/schemas/RegionRule",
+                "entropy_region": "#/components/schemas/ProfileRule",
+                "event_association": "#/components/schemas/EventRule",
+                "field_boundary_candidate": "#/components/schemas/RegionRule",
+                "field_delimiter": "#/components/schemas/DelimiterRule",
+                "fixed_framing": "#/components/schemas/FramingCandidateRule",
+                "fixed_width_region": "#/components/schemas/RegionRule",
+                "identifier_relation": "#/components/schemas/CounterRule",
+                "length_framing": "#/components/schemas/FramingCandidateRule",
+                "length_relation": "#/components/schemas/LengthRelationRule",
+                "marker_framing": "#/components/schemas/FramingCandidateRule",
+                "message_group": "#/components/schemas/GroupRule",
+                "opcode_candidate": "#/components/schemas/GroupRule",
+                "parameter_mapping": "#/components/schemas/MappingRule",
+                "relative_clock_candidate": "#/components/schemas/TimestampRule",
+                "session_stable_region": "#/components/schemas/RegionRule",
+                "session_token_candidate": "#/components/schemas/RegionRule",
+                "start_marker": "#/components/schemas/RegionRule",
+                "timestamp_candidate": "#/components/schemas/TimestampRule"
+              }
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "sha256",
+          "rule"
+        ],
+        "title": "CandidateInput"
+      },
+      "CandidateList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "next_offset"
+        ],
+        "title": "CandidateList"
+      },
+      "CandidateScope": {
+        "properties": {
+          "corpus_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Corpus Version Id"
+          },
+          "capture_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Capture Ids"
+          },
+          "session_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Session Ids",
+            "default": []
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "both",
+              "a_to_b",
+              "b_to_a"
+            ],
+            "title": "Direction",
+            "default": "both"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "corpus_version_id",
+          "capture_ids"
+        ],
+        "title": "CandidateScope"
+      },
+      "CandidateSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "framing",
+              "structure",
+              "groups",
+              "counters",
+              "tokens",
+              "checksums",
+              "timestamps",
+              "entropy",
+              "events",
+              "data_mapping"
+            ],
+            "title": "Family"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "rule_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Rule Sha256"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/InferenceMetrics"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "compiler_support": {
+            "type": "string",
+            "title": "Compiler Support"
+          },
+          "dependency_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Dependency Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "family",
+          "kind",
+          "rule_sha256",
+          "metrics",
+          "rationale",
+          "compiler_support",
+          "dependency_ids"
+        ],
+        "title": "CandidateSummary"
+      },
       "CaptureList": {
         "properties": {
           "items": {
@@ -3801,6 +5045,56 @@
           "streams"
         ],
         "title": "CaptureSnapshot"
+      },
+      "ChecksumRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "checksum_relation",
+            "title": "Kind"
+          },
+          "field": {
+            "$ref": "#/components/schemas/IntegerLocation"
+          },
+          "algorithm": {
+            "type": "string",
+            "enum": [
+              "xor8",
+              "sum8",
+              "sum16",
+              "internet_checksum",
+              "CRC-8/SMBUS",
+              "CRC-16/ARC",
+              "CRC-16/IBM-3740",
+              "CRC-16/IBM-SDLC",
+              "CRC-32/ISO-HDLC"
+            ],
+            "title": "Algorithm"
+          },
+          "covered_ranges": {
+            "items": {
+              "$ref": "#/components/schemas/ByteRange"
+            },
+            "type": "array",
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Covered Ranges"
+          },
+          "exclude_field": {
+            "type": "boolean",
+            "title": "Exclude Field",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "field",
+          "algorithm",
+          "covered_ranges"
+        ],
+        "title": "ChecksumRule"
       },
       "ClockUpdate": {
         "properties": {
@@ -4080,6 +5374,60 @@
         ],
         "title": "CorrelatedActions"
       },
+      "CounterRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "counter",
+              "identifier_relation"
+            ],
+            "title": "Kind"
+          },
+          "field": {
+            "$ref": "#/components/schemas/IntegerLocation"
+          },
+          "step": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "message_length",
+              "payload_length"
+            ],
+            "title": "Step",
+            "default": "fixed"
+          },
+          "increment": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Increment",
+            "default": 1
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "direction",
+              "message_group",
+              "session"
+            ],
+            "title": "Scope",
+            "default": "direction"
+          },
+          "wrap": {
+            "type": "boolean",
+            "title": "Wrap",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "field"
+        ],
+        "title": "CounterRule"
+      },
       "Coverage": {
         "properties": {
           "counts": {
@@ -4247,6 +5595,58 @@
         ],
         "title": "Currentness"
       },
+      "DataSplit": {
+        "properties": {
+          "unit": {
+            "type": "string",
+            "enum": [
+              "capture",
+              "session"
+            ],
+            "title": "Unit",
+            "default": "capture"
+          },
+          "discovery_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Discovery Ids"
+          },
+          "holdout_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Holdout Ids",
+            "default": []
+          },
+          "holdout_unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holdout Unavailable Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "discovery_ids"
+        ],
+        "title": "DataSplit"
+      },
       "DecodeRequest": {
         "properties": {
           "version_id": {
@@ -4328,7 +5728,7 @@
           "engine_version": {
             "type": "string",
             "title": "Engine Version",
-            "default": "interpretation-v1"
+            "default": "interpretation-v2"
           },
           "piece_count": {
             "type": "integer",
@@ -4441,6 +5841,187 @@
         ],
         "title": "DecodedField"
       },
+      "DelimiterRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "field_delimiter",
+            "title": "Kind"
+          },
+          "delimiter_hex": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^(?:[0-9a-fA-F]{2})+$",
+            "title": "Delimiter Hex"
+          },
+          "include_terminator": {
+            "type": "boolean",
+            "title": "Include Terminator",
+            "default": false
+          },
+          "escaping": {
+            "type": "string",
+            "const": "none",
+            "title": "Escaping",
+            "default": "none"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "delimiter_hex"
+        ],
+        "title": "DelimiterRule"
+      },
+      "DetectorCapability": {
+        "properties": {
+          "family": {
+            "type": "string",
+            "enum": [
+              "framing",
+              "structure",
+              "groups",
+              "counters",
+              "tokens",
+              "checksums",
+              "timestamps",
+              "entropy",
+              "events",
+              "data_mapping"
+            ],
+            "title": "Family"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": false
+          },
+          "implementation_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implementation Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "DetectorCapability"
+      },
+      "DetectorOutcome": {
+        "properties": {
+          "family": {
+            "type": "string",
+            "enum": [
+              "framing",
+              "structure",
+              "groups",
+              "counters",
+              "tokens",
+              "checksums",
+              "timestamps",
+              "entropy",
+              "events",
+              "data_mapping"
+            ],
+            "title": "Family"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "search_limited",
+              "insufficient_data",
+              "unsupported",
+              "failed"
+            ],
+            "title": "Outcome"
+          },
+          "searched_units": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Searched Units"
+          },
+          "unsearched_units": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Unsearched Units"
+          },
+          "diagnostic": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Diagnostic"
+          },
+          "searched_unit": {
+            "type": "string",
+            "enum": [
+              "rule_trial",
+              "sample_message"
+            ],
+            "title": "Searched Unit",
+            "default": "rule_trial"
+          },
+          "unsearched_unit": {
+            "type": "string",
+            "const": "residual_search_space",
+            "title": "Unsearched Unit",
+            "default": "residual_search_space"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "family",
+          "outcome",
+          "searched_units",
+          "unsearched_units",
+          "diagnostic"
+        ],
+        "title": "DetectorOutcome"
+      },
+      "DetectorRequest": {
+        "properties": {
+          "family": {
+            "type": "string",
+            "enum": [
+              "framing",
+              "structure",
+              "groups",
+              "counters",
+              "tokens",
+              "checksums",
+              "timestamps",
+              "entropy",
+              "events",
+              "data_mapping"
+            ],
+            "title": "Family"
+          },
+          "contract_version": {
+            "type": "string",
+            "const": "inference-detector-1",
+            "title": "Contract Version",
+            "default": "inference-detector-1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "family"
+        ],
+        "title": "DetectorRequest"
+      },
       "DiagnosticRequest": {
         "properties": {
           "steps": {
@@ -4505,6 +6086,45 @@
         ],
         "title": "Difference"
       },
+      "DraftResult": {
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Candidate Id"
+          },
+          "compilable": {
+            "type": "boolean",
+            "title": "Compilable"
+          },
+          "document_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Json"
+          },
+          "diagnostics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Diagnostics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "compilable",
+          "diagnostics"
+        ],
+        "title": "DraftResult"
+      },
       "Endpoint": {
         "properties": {
           "address": {
@@ -4526,6 +6146,205 @@
           "port"
         ],
         "title": "Endpoint"
+      },
+      "EngineVersions": {
+        "properties": {
+          "contracts": {
+            "type": "string",
+            "const": "inference-contracts-1",
+            "title": "Contracts",
+            "default": "inference-contracts-1"
+          },
+          "inference": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Inference"
+          },
+          "framing": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Framing"
+          },
+          "interpretation": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Interpretation"
+          },
+          "validation": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Validation"
+          },
+          "ranking": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Ranking"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "inference",
+          "framing",
+          "interpretation",
+          "validation",
+          "ranking"
+        ],
+        "title": "EngineVersions"
+      },
+      "EvaluationList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "EvaluationList"
+      },
+      "EvaluationRecord": {
+        "properties": {
+          "evaluation": {
+            "$ref": "#/components/schemas/CandidateEvaluation"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "discovery_run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Discovery Run Id"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/InferenceCoverage"
+          },
+          "diagnostics": {
+            "items": {
+              "type": "string",
+              "maxLength": 10000,
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Diagnostics",
+            "default": []
+          },
+          "evidence_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Evidence Count"
+          },
+          "target_side": {
+            "type": "string",
+            "enum": [
+              "holdout",
+              "corpus"
+            ],
+            "title": "Target Side",
+            "default": "corpus"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evaluation",
+          "created_at",
+          "discovery_run_id",
+          "complete",
+          "coverage",
+          "evidence_count"
+        ],
+        "title": "EvaluationRecord"
+      },
+      "EvaluationRequest": {
+        "properties": {
+          "corpus_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corpus Version Id"
+          },
+          "holdout": {
+            "type": "boolean",
+            "title": "Holdout",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "EvaluationRequest"
+      },
+      "EventRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "event_association",
+            "title": "Kind"
+          },
+          "before_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Before Ns"
+          },
+          "after_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "After Ns"
+          },
+          "clock_offset_ns": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^-?(0|[1-9][0-9]*)$",
+            "title": "Clock Offset Ns",
+            "default": "0"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "before_ns",
+          "after_ns"
+        ],
+        "title": "EventRule"
       },
       "Evidence": {
         "properties": {
@@ -4571,6 +6390,40 @@
         ],
         "title": "Evidence"
       },
+      "EvidenceList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateEvidence"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "next_offset"
+        ],
+        "title": "EvidenceList"
+      },
       "FixedRule": {
         "properties": {
           "kind": {
@@ -4592,6 +6445,66 @@
           "size"
         ],
         "title": "FixedRule"
+      },
+      "FramingCandidateRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fixed_framing",
+              "length_framing",
+              "marker_framing"
+            ],
+            "title": "Kind"
+          },
+          "framing": {
+            "$ref": "#/components/schemas/FramingSpec"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "framing"
+        ],
+        "title": "FramingCandidateRule"
+      },
+      "FramingInput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/FramingSpec"
+          },
+          "stream_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stream Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "sha256",
+          "spec"
+        ],
+        "title": "FramingInput"
       },
       "FramingSpec": {
         "properties": {
@@ -4654,6 +6567,43 @@
           "rule"
         ],
         "title": "FramingSpec"
+      },
+      "GroupRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "message_group",
+              "opcode_candidate"
+            ],
+            "title": "Kind"
+          },
+          "key_fields": {
+            "items": {
+              "$ref": "#/components/schemas/IntegerLocation"
+            },
+            "type": "array",
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Key Fields"
+          },
+          "masked_ranges": {
+            "items": {
+              "$ref": "#/components/schemas/ByteRange"
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Masked Ranges",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "key_fields"
+        ],
+        "title": "GroupRule"
       },
       "HTTPValidationError": {
         "properties": {
@@ -5105,6 +7055,983 @@
         ],
         "title": "IndexedPacket"
       },
+      "InferenceCandidate": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "inference-candidate-1",
+            "title": "Schema Version",
+            "default": "inference-candidate-1"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "family": {
+            "type": "string",
+            "enum": [
+              "framing",
+              "structure",
+              "groups",
+              "counters",
+              "tokens",
+              "checksums",
+              "timestamps",
+              "entropy",
+              "events",
+              "data_mapping"
+            ],
+            "title": "Family"
+          },
+          "detector_version": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Detector Version"
+          },
+          "rule_schema_version": {
+            "type": "string",
+            "const": "inference-rule-1",
+            "title": "Rule Schema Version",
+            "default": "inference-rule-1"
+          },
+          "rule": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FramingCandidateRule"
+              },
+              {
+                "$ref": "#/components/schemas/RegionRule"
+              },
+              {
+                "$ref": "#/components/schemas/LengthRelationRule"
+              },
+              {
+                "$ref": "#/components/schemas/DelimiterRule"
+              },
+              {
+                "$ref": "#/components/schemas/GroupRule"
+              },
+              {
+                "$ref": "#/components/schemas/CounterRule"
+              },
+              {
+                "$ref": "#/components/schemas/ChecksumRule"
+              },
+              {
+                "$ref": "#/components/schemas/TimestampRule"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileRule"
+              },
+              {
+                "$ref": "#/components/schemas/EventRule"
+              },
+              {
+                "$ref": "#/components/schemas/MappingRule"
+              }
+            ],
+            "title": "Rule",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "byte_profile": "#/components/schemas/ProfileRule",
+                "checksum_relation": "#/components/schemas/ChecksumRule",
+                "constant_region": "#/components/schemas/RegionRule",
+                "copied_value": "#/components/schemas/RegionRule",
+                "counter": "#/components/schemas/CounterRule",
+                "end_marker": "#/components/schemas/RegionRule",
+                "entropy_region": "#/components/schemas/ProfileRule",
+                "event_association": "#/components/schemas/EventRule",
+                "field_boundary_candidate": "#/components/schemas/RegionRule",
+                "field_delimiter": "#/components/schemas/DelimiterRule",
+                "fixed_framing": "#/components/schemas/FramingCandidateRule",
+                "fixed_width_region": "#/components/schemas/RegionRule",
+                "identifier_relation": "#/components/schemas/CounterRule",
+                "length_framing": "#/components/schemas/FramingCandidateRule",
+                "length_relation": "#/components/schemas/LengthRelationRule",
+                "marker_framing": "#/components/schemas/FramingCandidateRule",
+                "message_group": "#/components/schemas/GroupRule",
+                "opcode_candidate": "#/components/schemas/GroupRule",
+                "parameter_mapping": "#/components/schemas/MappingRule",
+                "relative_clock_candidate": "#/components/schemas/TimestampRule",
+                "session_stable_region": "#/components/schemas/RegionRule",
+                "session_token_candidate": "#/components/schemas/RegionRule",
+                "start_marker": "#/components/schemas/RegionRule",
+                "timestamp_candidate": "#/components/schemas/TimestampRule"
+              }
+            }
+          },
+          "rule_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Rule Sha256"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/CandidateScope"
+          },
+          "dependency_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Dependency Ids",
+            "default": []
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/InferenceMetrics"
+          },
+          "ranking": {
+            "$ref": "#/components/schemas/RankingComponents"
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Rationale"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string",
+              "maxLength": 10000,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Assumptions",
+            "default": []
+          },
+          "limitations": {
+            "items": {
+              "type": "string",
+              "maxLength": 10000,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Limitations",
+            "default": []
+          },
+          "alternatives": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Alternatives",
+            "default": []
+          },
+          "compiler_support": {
+            "type": "string",
+            "enum": [
+              "interpretation-1",
+              "not_compilable"
+            ],
+            "title": "Compiler Support"
+          },
+          "compiler_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compiler Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "family",
+          "detector_version",
+          "rule",
+          "rule_sha256",
+          "scope",
+          "metrics",
+          "ranking",
+          "rationale",
+          "compiler_support"
+        ],
+        "title": "InferenceCandidate"
+      },
+      "InferenceCapabilities": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "const": "A1",
+            "title": "Stage",
+            "default": "A1"
+          },
+          "contract_version": {
+            "type": "string",
+            "title": "Contract Version",
+            "default": "inference-contracts-1"
+          },
+          "analysis_available": {
+            "type": "boolean",
+            "const": true,
+            "title": "Analysis Available",
+            "default": true
+          },
+          "scope_verification_available": {
+            "type": "boolean",
+            "const": true,
+            "title": "Scope Verification Available",
+            "default": true
+          },
+          "budget_profile": {
+            "type": "string",
+            "title": "Budget Profile",
+            "default": "bounded_a1"
+          },
+          "detectors": {
+            "items": {
+              "$ref": "#/components/schemas/DetectorCapability"
+            },
+            "type": "array",
+            "title": "Detectors"
+          },
+          "default_budget": {
+            "$ref": "#/components/schemas/SearchBudget"
+          },
+          "default_search": {
+            "$ref": "#/components/schemas/SearchSpace"
+          },
+          "schema_names": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "spec",
+                "snapshot",
+                "rule",
+                "candidate",
+                "run",
+                "evidence",
+                "evaluation",
+                "decision",
+                "transform"
+              ]
+            },
+            "type": "array",
+            "title": "Schema Names"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "detectors",
+          "schema_names"
+        ],
+        "title": "InferenceCapabilities"
+      },
+      "InferenceCoverage": {
+        "properties": {
+          "stream_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Stream Bytes"
+          },
+          "selected_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Selected Bytes"
+          },
+          "excluded_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Excluded Bytes"
+          },
+          "known_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Known Bytes"
+          },
+          "unavailable_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Unavailable Bytes"
+          },
+          "ambiguous_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Ambiguous Bytes"
+          },
+          "unframed_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Unframed Bytes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stream_bytes",
+          "selected_bytes",
+          "excluded_bytes",
+          "known_bytes",
+          "unavailable_bytes",
+          "ambiguous_bytes",
+          "unframed_bytes"
+        ],
+        "title": "InferenceCoverage"
+      },
+      "InferenceCurrentness": {
+        "properties": {
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "details": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Details",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "checked_at",
+          "stale",
+          "reasons"
+        ],
+        "title": "InferenceCurrentness"
+      },
+      "InferenceMetrics": {
+        "properties": {
+          "unit": {
+            "type": "string",
+            "enum": [
+              "message",
+              "transition",
+              "event",
+              "session"
+            ],
+            "title": "Unit"
+          },
+          "eligible": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Eligible"
+          },
+          "matched": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Matched"
+          },
+          "contradicted": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Contradicted"
+          },
+          "unknown": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Unknown"
+          },
+          "ambiguous": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Ambiguous"
+          },
+          "not_applicable": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Not Applicable"
+          },
+          "captures": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Captures"
+          },
+          "sessions": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Sessions"
+          },
+          "unique_messages": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Unique Messages"
+          },
+          "distinct_values": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Distinct Values",
+            "default": 0
+          },
+          "distinct_lengths": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Distinct Lengths",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit",
+          "eligible",
+          "matched",
+          "contradicted",
+          "unknown",
+          "ambiguous",
+          "not_applicable",
+          "captures",
+          "sessions",
+          "unique_messages"
+        ],
+        "title": "InferenceMetrics"
+      },
+      "InferenceRequest": {
+        "properties": {
+          "document_json": {
+            "type": "string",
+            "maxLength": 524288,
+            "title": "Document Json"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_json"
+        ],
+        "title": "InferenceRequest"
+      },
+      "InferenceRun": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "inference-run-1",
+            "title": "Schema Version",
+            "default": "inference-run-1"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/InferenceSnapshot"
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/DetectorOutcome"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Outcomes"
+          },
+          "search_complete": {
+            "type": "boolean",
+            "title": "Search Complete"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Candidate Count"
+          },
+          "sample_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sample Sha256"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/InferenceCoverage"
+          },
+          "diagnostics": {
+            "items": {
+              "type": "string",
+              "maxLength": 10000,
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Diagnostics",
+            "default": []
+          },
+          "rule_trials": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Rule Trials",
+            "default": 0
+          },
+          "semantic_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Sha256"
+          },
+          "search_ranges": {
+            "items": {
+              "$ref": "#/components/schemas/SearchRange"
+            },
+            "type": "array",
+            "title": "Search Ranges",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "snapshot",
+          "outcomes",
+          "search_complete",
+          "candidate_count",
+          "sample_sha256",
+          "coverage"
+        ],
+        "title": "InferenceRun"
+      },
+      "InferenceRunList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "InferenceRunList"
+      },
+      "InferenceSnapshot": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "inference-snapshot-1",
+            "title": "Schema Version",
+            "default": "inference-snapshot-1"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/InferenceSpec"
+          },
+          "corpus": {
+            "$ref": "#/components/schemas/StoredCorpus"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/CaptureSnapshot"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Sources"
+          },
+          "interpretation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterpretationInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "framing": {
+            "items": {
+              "$ref": "#/components/schemas/FramingInput"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Framing",
+            "default": []
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateInput"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Candidates",
+            "default": []
+          },
+          "sample_anchors": {
+            "items": {
+              "$ref": "#/components/schemas/StreamRange"
+            },
+            "type": "array",
+            "maxItems": 100000,
+            "title": "Sample Anchors",
+            "default": []
+          },
+          "engines": {
+            "$ref": "#/components/schemas/EngineVersions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "spec",
+          "corpus",
+          "sources",
+          "engines"
+        ],
+        "title": "InferenceSnapshot"
+      },
+      "InferenceSpec": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "inference-spec-1",
+            "title": "Schema Version",
+            "default": "inference-spec-1"
+          },
+          "corpus_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Corpus Version Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "discover",
+              "evaluate"
+            ],
+            "title": "Mode",
+            "default": "discover"
+          },
+          "candidate_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Candidate Ids",
+            "default": []
+          },
+          "detectors": {
+            "items": {
+              "$ref": "#/components/schemas/DetectorRequest"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Detectors"
+          },
+          "split": {
+            "$ref": "#/components/schemas/DataSplit"
+          },
+          "sampling": {
+            "$ref": "#/components/schemas/SamplingSpec"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/SearchBudget"
+          },
+          "search": {
+            "$ref": "#/components/schemas/SearchSpace"
+          },
+          "framing_version_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Framing Version Ids",
+            "default": []
+          },
+          "interpretation_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interpretation Version Id"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string",
+              "maxLength": 10000,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Assumptions",
+            "default": []
+          },
+          "known_markers": {
+            "items": {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^(?:[0-9a-fA-F]{2})+$"
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Known Markers",
+            "default": []
+          },
+          "excluded_ranges": {
+            "items": {
+              "$ref": "#/components/schemas/StreamRange"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Excluded Ranges",
+            "default": []
+          },
+          "recording_groups": {
+            "items": {
+              "$ref": "#/components/schemas/RecordingGroup"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Recording Groups",
+            "default": []
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/LogInput"
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Logs",
+            "default": []
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ParameterInput"
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Parameters",
+            "default": []
+          },
+          "event_before_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Event Before Ns",
+            "default": 0
+          },
+          "event_after_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Event After Ns",
+            "default": 1000000000
+          },
+          "checksum_algorithms": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "xor8",
+                "sum8",
+                "sum16",
+                "internet_checksum",
+                "CRC-8/SMBUS",
+                "CRC-16/ARC",
+                "CRC-16/IBM-3740",
+                "CRC-16/IBM-SDLC",
+                "CRC-32/ISO-HDLC"
+              ]
+            },
+            "type": "array",
+            "title": "Checksum Algorithms",
+            "default": [
+              "xor8",
+              "sum8",
+              "sum16",
+              "internet_checksum",
+              "CRC-8/SMBUS",
+              "CRC-16/ARC",
+              "CRC-16/IBM-3740",
+              "CRC-16/IBM-SDLC",
+              "CRC-32/ISO-HDLC"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "corpus_version_id",
+          "detectors",
+          "split"
+        ],
+        "title": "InferenceSpec"
+      },
+      "IntegerLocation": {
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "width": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              4,
+              8
+            ],
+            "title": "Width"
+          },
+          "endian": {
+            "type": "string",
+            "enum": [
+              "big",
+              "little"
+            ],
+            "title": "Endian"
+          },
+          "signed": {
+            "type": "boolean",
+            "title": "Signed",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "offset",
+          "width",
+          "endian"
+        ],
+        "title": "IntegerLocation"
+      },
+      "InterpretationInput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256"
+          },
+          "document_json": {
+            "type": "string",
+            "maxLength": 262144,
+            "title": "Document Json"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "sha256",
+          "document_json"
+        ],
+        "title": "InterpretationInput"
+      },
       "JobListResponse": {
         "properties": {
           "items": {
@@ -5139,6 +8066,8 @@
               "stream_framing",
               "message_interpretation",
               "corpus_validation",
+              "protocol_inference",
+              "inference_evaluation",
               "project_operation",
               "project_restore"
             ],
@@ -5220,6 +8149,56 @@
           "updated_at"
         ],
         "title": "JobSnapshot"
+      },
+      "LengthRelationRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "length_relation",
+            "title": "Kind"
+          },
+          "field": {
+            "$ref": "#/components/schemas/IntegerLocation"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "message",
+              "payload",
+              "array"
+            ],
+            "title": "Target"
+          },
+          "target_offset": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Target Offset",
+            "default": 0
+          },
+          "multiplier": {
+            "type": "integer",
+            "maximum": 65536.0,
+            "minimum": 1.0,
+            "title": "Multiplier",
+            "default": 1
+          },
+          "adjustment": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": -16777216.0,
+            "title": "Adjustment",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "field",
+          "target"
+        ],
+        "title": "LengthRelationRule"
       },
       "LengthRule": {
         "properties": {
@@ -5305,6 +8284,98 @@
           "next_offset"
         ],
         "title": "LinkList"
+      },
+      "LogInput": {
+        "properties": {
+          "log_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Log Id"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256"
+          },
+          "clock_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Clock Revision"
+          },
+          "clock_offset_ns": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^-?(0|[1-9][0-9]*)$",
+            "title": "Clock Offset Ns"
+          },
+          "timestamp_field": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Timestamp Field"
+          },
+          "label_field": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label Field"
+          },
+          "parameters_field": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters Field"
+          },
+          "timestamp_format": {
+            "type": "string",
+            "enum": [
+              "iso8601",
+              "unix_s",
+              "unix_ms",
+              "unix_ns"
+            ],
+            "title": "Timestamp Format"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "csv",
+              "json"
+            ],
+            "title": "Format"
+          },
+          "delimiter": {
+            "type": "string",
+            "enum": [
+              ",",
+              ";",
+              "\t"
+            ],
+            "title": "Delimiter",
+            "default": ","
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "log_id",
+          "sha256",
+          "clock_revision",
+          "clock_offset_ns",
+          "timestamp_field",
+          "label_field",
+          "timestamp_format",
+          "format"
+        ],
+        "title": "LogInput"
       },
       "LogList": {
         "properties": {
@@ -5446,6 +8517,76 @@
         ],
         "title": "ManualRule"
       },
+      "MappingRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "parameter_mapping",
+            "title": "Kind"
+          },
+          "parameter_path": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Parameter Path"
+          },
+          "encoding": {
+            "type": "string",
+            "enum": [
+              "ascii",
+              "utf-8",
+              "utf-16le",
+              "utf-16be",
+              "decimal",
+              "integer"
+            ],
+            "title": "Encoding"
+          },
+          "base64": {
+            "type": "string",
+            "enum": [
+              "none",
+              "standard",
+              "urlsafe"
+            ],
+            "title": "Base64",
+            "default": "none"
+          },
+          "padding": {
+            "type": "boolean",
+            "title": "Padding",
+            "default": true
+          },
+          "bom": {
+            "type": "boolean",
+            "title": "Bom",
+            "default": false
+          },
+          "integer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntegerLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "parameter_path",
+          "encoding"
+        ],
+        "title": "MappingRule"
+      },
       "MarkerRule": {
         "properties": {
           "kind": {
@@ -5514,6 +8655,16 @@
             },
             "type": "array",
             "title": "Unknown Ranges"
+          },
+          "technical_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5559,6 +8710,16 @@
           "unknown_range_count": {
             "type": "integer",
             "title": "Unknown Range Count"
+          },
+          "technical_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5784,6 +8945,59 @@
         ],
         "title": "PacketList"
       },
+      "ParameterInput": {
+        "properties": {
+          "log_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Log Id"
+          },
+          "event_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "title": "Event Ids",
+            "default": []
+          },
+          "parameter_path": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 16,
+            "title": "Parameter Path",
+            "default": []
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ParameterInput"
+      },
       "Piece": {
         "properties": {
           "id": {
@@ -5827,6 +9041,16 @@
           "diagnostic": {
             "type": "string",
             "title": "Diagnostic"
+          },
+          "technical_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5870,6 +9094,41 @@
           "next_offset"
         ],
         "title": "PieceList"
+      },
+      "ProfileRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "byte_profile",
+              "entropy_region"
+            ],
+            "title": "Kind"
+          },
+          "measurement": {
+            "type": "string",
+            "enum": [
+              "within_block",
+              "sliding_window",
+              "across_messages"
+            ],
+            "title": "Measurement"
+          },
+          "window_bytes": {
+            "type": "integer",
+            "maximum": 65536.0,
+            "minimum": 1.0,
+            "title": "Window Bytes",
+            "default": 64
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "measurement"
+        ],
+        "title": "ProfileRule"
       },
       "Project": {
         "properties": {
@@ -5957,6 +9216,63 @@
           "variants"
         ],
         "title": "RangeBlock"
+      },
+      "RankingComponents": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "const": "lexicographic-1",
+            "title": "Version",
+            "default": "lexicographic-1"
+          },
+          "supporting_sessions": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Supporting Sessions"
+          },
+          "matched": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Matched"
+          },
+          "checked": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Checked"
+          },
+          "explained_bytes": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Explained Bytes"
+          },
+          "contradictions": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Contradictions"
+          },
+          "free_parameters": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Free Parameters"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "supporting_sessions",
+          "matched",
+          "checked",
+          "explained_bytes",
+          "contradictions",
+          "free_parameters"
+        ],
+        "title": "RankingComponents"
       },
       "RebuiltStream": {
         "properties": {
@@ -6079,6 +9395,104 @@
         "type": "object",
         "title": "ReconstructionSettings"
       },
+      "RecordingGroup": {
+        "properties": {
+          "capture_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 2,
+            "title": "Capture Ids"
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Rationale"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "capture_ids",
+          "rationale"
+        ],
+        "title": "RecordingGroup",
+        "description": "Explicit knowledge that captures observe the same traffic; never inferred from labels."
+      },
+      "RegionRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "constant_region",
+              "start_marker",
+              "end_marker",
+              "fixed_width_region",
+              "session_stable_region",
+              "session_token_candidate",
+              "copied_value",
+              "field_boundary_candidate"
+            ],
+            "title": "Kind"
+          },
+          "relative_to": {
+            "type": "string",
+            "enum": [
+              "message_start",
+              "message_end"
+            ],
+            "title": "Relative To",
+            "default": "message_start"
+          },
+          "offset": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "length": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Length"
+          },
+          "value_hex": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^(?:[0-9a-fA-F]{2})+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Hex"
+          },
+          "relation_scope": {
+            "type": "string",
+            "enum": [
+              "message_group",
+              "direction",
+              "session"
+            ],
+            "title": "Relation Scope",
+            "default": "message_group"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "offset",
+          "length"
+        ],
+        "title": "RegionRule"
+      },
       "RunInput": {
         "properties": {
           "corpus_version_id": {
@@ -6181,7 +9595,7 @@
           "engine_version": {
             "type": "string",
             "title": "Engine Version",
-            "default": "validation-v2"
+            "default": "validation-v3"
           },
           "sources": {
             "items": {
@@ -6208,6 +9622,63 @@
           "sources"
         ],
         "title": "RunSnapshot"
+      },
+      "RunSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "corpus_name": {
+            "type": "string",
+            "title": "Corpus Name"
+          },
+          "corpus_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Corpus Version Id"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Candidate Count"
+          },
+          "search_complete": {
+            "type": "boolean",
+            "title": "Search Complete"
+          },
+          "semantic_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "corpus_name",
+          "corpus_version_id",
+          "candidate_count",
+          "search_complete",
+          "semantic_sha256"
+        ],
+        "title": "RunSummary"
       },
       "RunView": {
         "properties": {
@@ -6237,7 +9708,7 @@
           "engine_version": {
             "type": "string",
             "title": "Engine Version",
-            "default": "framing-v1"
+            "default": "framing-v2"
           },
           "spec": {
             "$ref": "#/components/schemas/FramingSpec"
@@ -6283,6 +9754,32 @@
         ],
         "title": "RunView"
       },
+      "SamplingSpec": {
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "default": 0
+          },
+          "strategy": {
+            "type": "string",
+            "const": "stratified_hash_round_robin_v1",
+            "title": "Strategy",
+            "default": "stratified_hash_round_robin_v1"
+          },
+          "deduplication": {
+            "type": "string",
+            "const": "payload_sha256",
+            "title": "Deduplication",
+            "default": "payload_sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SamplingSpec"
+      },
       "SaveModel": {
         "properties": {
           "document_json": {
@@ -6310,6 +9807,168 @@
         ],
         "title": "SaveModel"
       },
+      "SearchBudget": {
+        "properties": {
+          "max_sample_messages": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Max Sample Messages",
+            "default": 5000
+          },
+          "max_sample_units": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 1.0,
+            "title": "Max Sample Units",
+            "default": 100000
+          },
+          "max_scanned_bytes": {
+            "type": "integer",
+            "maximum": 1099511627776.0,
+            "minimum": 1.0,
+            "title": "Max Scanned Bytes",
+            "default": 104857600
+          },
+          "max_header_bytes": {
+            "type": "integer",
+            "maximum": 65536.0,
+            "minimum": 1.0,
+            "title": "Max Header Bytes",
+            "default": 64
+          },
+          "max_candidates_per_family": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Max Candidates Per Family",
+            "default": 200
+          },
+          "max_candidates": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Max Candidates",
+            "default": 2000
+          },
+          "max_framing_alternatives": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Framing Alternatives",
+            "default": 10
+          },
+          "max_refinement_iterations": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Max Refinement Iterations",
+            "default": 2
+          },
+          "max_evidence_bytes": {
+            "type": "integer",
+            "maximum": 4294967296.0,
+            "minimum": 1.0,
+            "title": "Max Evidence Bytes",
+            "default": 268435456
+          },
+          "max_decoded_field_bytes": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": 1.0,
+            "title": "Max Decoded Field Bytes",
+            "default": 1048576
+          },
+          "max_alignment_cells": {
+            "type": "integer",
+            "maximum": 100000000.0,
+            "minimum": 1.0,
+            "title": "Max Alignment Cells",
+            "default": 1000000
+          },
+          "max_candidate_evaluations": {
+            "type": "integer",
+            "maximum": 10000000.0,
+            "minimum": 1.0,
+            "title": "Max Candidate Evaluations",
+            "default": 100000
+          },
+          "max_checksum_operations": {
+            "type": "integer",
+            "maximum": 100000000.0,
+            "minimum": 1.0,
+            "title": "Max Checksum Operations",
+            "default": 1000000
+          },
+          "max_event_windows": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 1.0,
+            "title": "Max Event Windows",
+            "default": 100000
+          },
+          "max_rule_trials": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 1.0,
+            "title": "Max Rule Trials",
+            "default": 20000
+          },
+          "max_probe_bytes": {
+            "type": "integer",
+            "maximum": 1048576.0,
+            "minimum": 64.0,
+            "title": "Max Probe Bytes",
+            "default": 65536
+          },
+          "max_message_bytes": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": 1.0,
+            "title": "Max Message Bytes",
+            "default": 1048576
+          },
+          "max_marker_positions": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 1.0,
+            "title": "Max Marker Positions",
+            "default": 4096
+          },
+          "max_probe_streams": {
+            "type": "integer",
+            "maximum": 128.0,
+            "minimum": 1.0,
+            "title": "Max Probe Streams",
+            "default": 8
+          },
+          "max_screen_messages": {
+            "type": "integer",
+            "maximum": 4096.0,
+            "minimum": 3.0,
+            "title": "Max Screen Messages",
+            "default": 64
+          },
+          "max_marker_occurrences": {
+            "type": "integer",
+            "maximum": 4096.0,
+            "minimum": 3.0,
+            "title": "Max Marker Occurrences",
+            "default": 32
+          },
+          "max_shortlist_per_kind": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Max Shortlist Per Kind",
+            "default": 48
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SearchBudget",
+        "description": "Finite operation counts, not assumptions about the investigated protocol."
+      },
       "SearchInput": {
         "properties": {
           "pattern_hex": {
@@ -6332,6 +9991,146 @@
           "pattern_hex"
         ],
         "title": "SearchInput"
+      },
+      "SearchRange": {
+        "properties": {
+          "anchor": {
+            "$ref": "#/components/schemas/StreamRange"
+          },
+          "scanned": {
+            "type": "boolean",
+            "title": "Scanned"
+          },
+          "diagnostic": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Diagnostic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "anchor",
+          "scanned",
+          "diagnostic"
+        ],
+        "title": "SearchRange"
+      },
+      "SearchSpace": {
+        "properties": {
+          "fixed_size_min": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": 1.0,
+            "title": "Fixed Size Min",
+            "default": 1
+          },
+          "fixed_size_max": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": 1.0,
+            "title": "Fixed Size Max",
+            "default": 4096
+          },
+          "multiplier_min": {
+            "type": "integer",
+            "maximum": 65536.0,
+            "minimum": 1.0,
+            "title": "Multiplier Min",
+            "default": 1
+          },
+          "multiplier_max": {
+            "type": "integer",
+            "maximum": 65536.0,
+            "minimum": 1.0,
+            "title": "Multiplier Max",
+            "default": 4
+          },
+          "adjustment_min": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": -16777216.0,
+            "title": "Adjustment Min",
+            "default": -64
+          },
+          "adjustment_max": {
+            "type": "integer",
+            "maximum": 16777216.0,
+            "minimum": -16777216.0,
+            "title": "Adjustment Max",
+            "default": 64
+          },
+          "marker_max_bytes": {
+            "type": "integer",
+            "maximum": 64.0,
+            "minimum": 1.0,
+            "title": "Marker Max Bytes",
+            "default": 16
+          },
+          "min_repeated_messages": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 2.0,
+            "title": "Min Repeated Messages",
+            "default": 3
+          },
+          "min_unique_messages": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Min Unique Messages",
+            "default": 2
+          },
+          "max_marker_patterns": {
+            "type": "integer",
+            "maximum": 128.0,
+            "minimum": 1.0,
+            "title": "Max Marker Patterns",
+            "default": 16
+          },
+          "widths": {
+            "items": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                4,
+                8
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Widths",
+            "default": [
+              1,
+              2,
+              4,
+              8
+            ]
+          },
+          "endians": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "big",
+                "little"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Endians",
+            "default": [
+              "big",
+              "little"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SearchSpace"
       },
       "SessionList": {
         "properties": {
@@ -6525,6 +10324,78 @@
           "status"
         ],
         "title": "Span"
+      },
+      "SpecCheck": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "scope_verified": {
+            "type": "boolean",
+            "const": false,
+            "title": "Scope Verified",
+            "default": false
+          },
+          "spec": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InferenceSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/SpecIssue"
+            },
+            "type": "array",
+            "title": "Issues",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "valid"
+        ],
+        "title": "SpecCheck"
+      },
+      "SpecDocument": {
+        "properties": {
+          "document_json": {
+            "type": "string",
+            "maxLength": 524288,
+            "title": "Document Json"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_json"
+        ],
+        "title": "SpecDocument"
+      },
+      "SpecIssue": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "path",
+          "message"
+        ],
+        "title": "SpecIssue"
       },
       "StoredCapture": {
         "properties": {
@@ -7046,6 +10917,108 @@
         ],
         "title": "StreamSnapshot"
       },
+      "TechnicalLimit": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "max_array_items",
+              "max_message_bytes",
+              "max_decoded_fields"
+            ],
+            "title": "Name"
+          },
+          "observed": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "title": "Observed"
+          },
+          "maximum": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "title": "Maximum"
+          },
+          "observed_is_lower_bound": {
+            "type": "boolean",
+            "title": "Observed Is Lower Bound",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "observed",
+          "maximum"
+        ],
+        "title": "TechnicalLimit"
+      },
+      "TimestampRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "timestamp_candidate",
+              "relative_clock_candidate"
+            ],
+            "title": "Kind"
+          },
+          "field": {
+            "$ref": "#/components/schemas/IntegerLocation"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "s",
+              "ms",
+              "us",
+              "ns"
+            ],
+            "title": "Unit"
+          },
+          "epoch": {
+            "type": "string",
+            "enum": [
+              "unix",
+              "session_relative",
+              "unknown"
+            ],
+            "title": "Epoch"
+          },
+          "clock_offset_ns": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^-?(0|[1-9][0-9]*)$",
+            "title": "Clock Offset Ns",
+            "default": "0"
+          },
+          "tolerance_ns": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tolerance Ns"
+          },
+          "drift_ppm": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "title": "Drift Ppm",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "field",
+          "unit",
+          "epoch",
+          "tolerance_ns"
+        ],
+        "title": "TimestampRule"
+      },
       "UnknownRange": {
         "properties": {
           "anchor": {
@@ -7218,6 +11191,16 @@
             "type": "array",
             "title": "Unknown Ranges",
             "default": []
+          },
+          "technical_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -7468,6 +11451,16 @@
           "values_sha256": {
             "type": "string",
             "title": "Values Sha256"
+          },
+          "technical_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalLimit"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,

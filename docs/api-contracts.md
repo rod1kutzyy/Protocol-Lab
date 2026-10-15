@@ -166,3 +166,16 @@ Upload превышение — 413, registry capacity — 429. Превышен
 без completed artifact. Прежние immutable результаты остаются доступны.
 Бюджет строки валидации общий для GUI worker и CLI apply; это ресурсная защита,
 не новое правило протокола. Полные source/settings/model versions прежних runs сохраняются.
+
+## Автоматический анализатор — A0
+
+Без БД доступны `GET /inference/capabilities`, `GET /inference/schemas/{name}`
+и `POST /inference/spec/check` с `{document_json}`. Проверка возвращает valid/issues,
+нормализованный spec и `scope_verified=false`: UUID existence/ownership проверяются
+при будущей загрузке project snapshot. Capabilities явно сообщает A0 и отсутствие
+работающих детекторов. Запуск и публикация inference runs — следующая поставка.
+
+Framing Piece, MessageResult/MessageSummary, ValidationItem/ValidationSummary
+дополнены необязательным `technical_limit` (name, observed, maximum,
+observed_is_lower_bound). Старые записи читаются с null, числовые значения — строки.
+SQL/bundle revisions не изменились. [Описание и схемы](inference-a0.md).

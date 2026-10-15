@@ -134,3 +134,19 @@ PortablePanel — adapters. reports/templates/research.md.j2 — fixed Jinja2 te
 services/application.py и cli/main.py исполняют те же dpkt/TCP/framing/Construct/validation
 functions, что GUI; framing/source.py и capture_diagnostics разделяются обоими адаптерами.
 [Контракты и формат](portability.md).
+
+## Рабочая область UI
+
+Пять разделов и контекстная область описаны в [ui-workspace](ui-workspace.md).
+WorkspaceScreen сохраняет mounted формы и прокрутку между разделами/задачами;
+WorkspaceState удерживает draft state по stream/framing/source внутри открытого
+проекта. URL hash задаёт раздел, Zustand хранит selection, TanStack Query —
+серверные данные. Изменение UI не меняет REST, DB schema, portable format или engine.
+## Автоматический анализатор: фундамент A0
+
+`inference/models.py` содержит закрытые versioned контракты; `document.py` — bounded
+strict JSON loader, `sampling.py` — deterministic discovery/holdout selection
+по frozen streams. `api/inference.py` публикует схемы и spec check без DB.
+Детекторы, process jobs и новые storage tables пока не добавлены; capabilities
+сообщает A0 и analysis_available=false. Существующие GUI/CLI framer/parser получают
+раздельные диагностики limits и contradictions. [Подробности](inference-a0.md).
