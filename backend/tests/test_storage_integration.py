@@ -1205,7 +1205,7 @@ def test_stage7_immutable_models_construct_results_provenance_and_restart(storag
         version = response.json()
         assert (
             client.get("/api/v1/interpretations/schema").json()["$id"]
-            == "urn:protocol-lab:interpretation-1"
+            == "urn:protocol-lab:interpretation-2"
         )
         files = {
             str(p): p.read_bytes()
@@ -1498,7 +1498,9 @@ def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, m
         first_meta = client.get(f"/api/v1/validation-runs/{first}").json()
         assert first_meta["coverage"]["message_counts"]["unknown"] == 1
         assert first_meta["coverage"]["message_counts"]["failed"] == 0
-        assert first_meta["snapshot"]["interpretation_engine_version"] == "interpretation-v2"
+        from protocol_lab.interpretation.engine import VERSION as INTERPRETATION_VERSION
+
+        assert first_meta["snapshot"]["interpretation_engine_version"] == INTERPRETATION_VERSION
         assert first_meta["snapshot"]["framing_engine_version"] == "framing-v2"
         from protocol_lab.storage import validation as validation_storage
 
@@ -2134,7 +2136,7 @@ def test_stage9_full_snapshot_archive_restore_without_old_directory(storage, tmp
 def test_stage9_gui_cli_values_diagnostics_and_export_model(storage, tmp_path):
     import io
 
-    from protocol_lab.interpretation.schema import ProtocolModel
+    from protocol_lab.interpretation.schema import ProtocolModel, canonical
     from protocol_lab.services.application import apply_capture
 
     _, settings, _ = storage
@@ -2162,10 +2164,8 @@ def test_stage9_gui_cli_values_diagnostics_and_export_model(storage, tmp_path):
                 json={"document_json": json.dumps(document)},
             ).json()
             downloaded = client.get(f"/api/v1/interpretation-versions/{version['id']}/export")
-            assert (
-                downloaded.status_code == 200
-                and downloaded.json()
-                == ProtocolModel.model_validate(document).model_dump(mode="json")
+            assert downloaded.status_code == 200 and downloaded.json() == json.loads(
+                canonical(ProtocolModel.model_validate(document))
             )
             corpus = client.post(
                 f"/api/v1/projects/{project}/corpora",

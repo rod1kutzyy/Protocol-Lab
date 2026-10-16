@@ -632,7 +632,8 @@ def test_a3_counter_wrap_candidate_executes_as_a_frozen_typed_rule():
     result, facts = evaluate(_evaluation_snapshot(snapshot, candidate), candidate, inputs, run.id)
     assert result.evaluation.metrics.matched == 5
     assert result.evaluation.metrics.contradicted == 0
-    assert all(fact.status == "passed" for fact in facts)
+    assert result.evaluation.metrics.unknown == 1  # First message has no preceding transition.
+    assert [fact.status for fact in facts] == ["unknown"] + ["passed"] * 5
 
 
 def test_a3_timestamp_candidate_uses_packet_intervals_and_one_shared_offset():

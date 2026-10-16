@@ -101,7 +101,13 @@ def test_legacy_content_hash_is_stable_after_additive_v2_defaults():
         (Path(__file__).resolve().parents[2] / "tests/fixtures/cli/length-model.json").read_text()
     )
     old = model.model_dump(mode="json")
-    for key in ("direction", "corpus_checks", "max_corpus_units", "max_corpus_bytes", "max_checksum_bytes"):
+    for key in (
+        "direction",
+        "corpus_checks",
+        "max_corpus_units",
+        "max_corpus_bytes",
+        "max_checksum_bytes",
+    ):
         old.pop(key)
     expected = hashlib.sha256(
         json.dumps(old, sort_keys=True, separators=(",", ":")).encode()
@@ -164,19 +170,32 @@ def test_event_and_parameter_prerequisites_and_missing_events_are_explicit():
 
 
 def test_copied_value_compares_original_bytes_and_retains_both_anchors():
-    checks = [dict(kind="copied_value", name="copy", source_field="left", target_field="right",
-                   source_direction="a_to_b")]
-    fields = [dict(kind="int", name="left", width=2, signed=False, endian="little"),
-              dict(kind="int", name="right", width=2, signed=False, endian="big")]
+    checks = [
+        dict(
+            kind="copied_value",
+            name="copy",
+            source_field="left",
+            target_field="right",
+            source_direction="a_to_b",
+        )
+    ]
+    fields = [
+        dict(kind="int", name="left", width=2, signed=False, endian="little"),
+        dict(kind="int", name="right", width=2, signed=False, endian="big"),
+    ]
     model, source, run_id = parsed(b"\x01\x00\x00\x00", checks, fields)
     _, target, _ = parsed(b"\x00\x00\x00\x01", checks, fields)
-    target = target[0].model_copy(update={"session_id": source[0].session_id, "direction": "b_to_a"})
+    target = target[0].model_copy(
+        update={"session_id": source[0].session_id, "direction": "b_to_a"}
+    )
     evaluator = CorpusEvaluator(model, run_id)
     evaluator.add(source[0], (10, 10))
     evaluator.add(target, (20, 20))
     assert any(f.status == "failed" for f in evaluator.finish())  # Equal int, different bytes.
     _, equal_bytes, _ = parsed(b"\x00\x00\x01\x00", checks, fields)
-    equal_bytes = equal_bytes[0].model_copy(update={"session_id": source[0].session_id, "direction": "b_to_a"})
+    equal_bytes = equal_bytes[0].model_copy(
+        update={"session_id": source[0].session_id, "direction": "b_to_a"}
+    )
     evaluator = CorpusEvaluator(model, run_id)
     evaluator.add(source[0], (10, 10))
     evaluator.add(equal_bytes, (20, 20))
@@ -190,8 +209,18 @@ def test_copied_value_compares_original_bytes_and_retains_both_anchors():
 
 def test_timestamp_exact_ns_drift_reference_and_nonmonotonic_capture_clock():
     epoch = 1_700_000_000_000_000_000
-    checks = [dict(kind="timestamp", name="time", field="value", unit="ns", epoch="unix",
-                   reference_ns=str(epoch), drift_ppm=100, clock_offset_ns="37")]
+    checks = [
+        dict(
+            kind="timestamp",
+            name="time",
+            field="value",
+            unit="ns",
+            epoch="unix",
+            reference_ns=str(epoch),
+            drift_ppm=100,
+            clock_offset_ns="37",
+        )
+    ]
     fields = [dict(kind="int", name="value", width=8, signed=False, endian="little")]
     data = b"".join((epoch + i * 10**9).to_bytes(8, "little") for i in range(3))
     model, items, run_id = parsed(data, checks, fields, size=8)
@@ -203,8 +232,10 @@ def test_timestamp_exact_ns_drift_reference_and_nonmonotonic_capture_clock():
     bad_clock = CorpusEvaluator(model, run_id)
     bad_clock.add(items[0], (epoch, epoch))
     bad_clock.add(items[1], (epoch - 1, epoch - 1))
-    assert any("capture_clock_nonmonotonic" in f.diagnostic and f.status == "unknown"
-               for f in bad_clock.finish())
+    assert any(
+        "capture_clock_nonmonotonic" in f.diagnostic and f.status == "unknown"
+        for f in bad_clock.finish()
+    )
 
 
 def test_cli_apply_freezes_explicit_logs_and_does_not_ignore_missing_prerequisites(tmp_path):
@@ -212,19 +243,45 @@ def test_cli_apply_freezes_explicit_logs_and_does_not_ignore_missing_prerequisit
 
     document = json.loads((FIXTURES / "a4-model.json").read_text())
     document["corpus_checks"].append(dict(kind="event_association", name="action", after_ns=10**9))
-    model_path, log_path, mapping_path = (tmp_path / name for name in ("model.json", "actions.json", "mapping.json"))
+    model_path, log_path, mapping_path = (
+        tmp_path / name for name in ("model.json", "actions.json", "mapping.json")
+    )
     model_path.write_text(json.dumps(document))
     log_path.write_text('[{"time":1700000000,"action":"arbitrary action label"}]')
-    mapping_path.write_text(json.dumps(dict(timestamp_field="time", label_field="action", timestamp_format="unix_s")))
-    arguments = ["apply", "--model", str(model_path), "--capture", str(FIXTURES / "crc-holdout.pcap")]
+    mapping_path.write_text(
+        json.dumps(dict(timestamp_field="time", label_field="action", timestamp_format="unix_s"))
+    )
+    arguments = [
+        "apply",
+        "--model",
+        str(model_path),
+        "--capture",
+        str(FIXTURES / "crc-holdout.pcap"),
+    ]
     missing, supplied = tmp_path / "missing.json", tmp_path / "supplied.json"
     assert main([*arguments, "--output", str(missing)]) == 0
-    assert main([*arguments, "--output", str(supplied), "--action-log", str(log_path),
-                 "--log-mapping", str(mapping_path)]) == 0
+    assert (
+        main(
+            [
+                *arguments,
+                "--output",
+                str(supplied),
+                "--action-log",
+                str(log_path),
+                "--log-mapping",
+                str(mapping_path),
+            ]
+        )
+        == 0
+    )
     before = json.loads(missing.read_text())
     after = json.loads(supplied.read_text())
-    assert all(row["status"] == "unknown" for row in before["results"] if row.get("check_name") == "action")
-    assert all(row["status"] == "passed" for row in after["results"] if row.get("check_name") == "action")
+    assert all(
+        row["status"] == "unknown" for row in before["results"] if row.get("check_name") == "action"
+    )
+    assert all(
+        row["status"] == "passed" for row in after["results"] if row.get("check_name") == "action"
+    )
     assert after["run"]["snapshot"]["action_logs"][0]["sha256"] == sha256_file(log_path)
 
 
@@ -304,8 +361,11 @@ def test_a4_report_reads_exact_candidate_evidence_from_derived_artifact(tmp_path
     output = io.StringIO()
     infer_files([path], discovery_document(path), output)
     body = json.loads(output.getvalue())
-    candidate = next(c for c in body["candidates"] if c["family"] == "checksums"
-                     and c["rule"]["algorithm"] == "CRC-32/ISO-HDLC")
+    candidate = next(
+        c
+        for c in body["candidates"]
+        if c["family"] == "checksums" and c["rule"]["algorithm"] == "CRC-32/ISO-HDLC"
+    )
     fact = next(f for f in body["evidence"] if f["candidate_id"] == candidate["id"])
     assert fact["sources"]
     derived = tmp_path / "derived"
@@ -314,12 +374,26 @@ def test_a4_report_reads_exact_candidate_evidence_from_derived_artifact(tmp_path
     (derived / "inference.jsonl").write_bytes(line)
     records = [
         ("projects", {"id": body["result"]["snapshot"]["project_id"], "name": "A4 report"}),
-        ("inference_runs", {"id": body["result"]["id"], "relative_path": "derived/inference.jsonl",
-                            "metadata_json": body["result"]}),
+        (
+            "inference_runs",
+            {
+                "id": body["result"]["id"],
+                "relative_path": "derived/inference.jsonl",
+                "metadata_json": body["result"],
+            },
+        ),
         ("inference_candidates", {"metadata_json": candidate}),
-        ("inference_evidence", {"candidate_id": candidate["id"], "run_id": candidate["run_id"],
-                                "evaluation_id": None, "status": fact["status"],
-                                "file_offset": 0, "length": len(line)}),
+        (
+            "inference_evidence",
+            {
+                "candidate_id": candidate["id"],
+                "run_id": candidate["run_id"],
+                "evaluation_id": None,
+                "status": fact["status"],
+                "file_offset": 0,
+                "length": len(line),
+            },
+        ),
     ]
     monkeypatch.setattr(render, "rows", lambda directory: iter(records))
     report = io.StringIO()

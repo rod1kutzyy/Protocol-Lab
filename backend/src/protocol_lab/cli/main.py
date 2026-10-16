@@ -97,7 +97,9 @@ def main(argv=None):
                     args.spec.read_text(encoding="utf-8") if args.spec else None,
                     output,
                     args.holdout,
-                    args.candidate.read_text(encoding="utf-8") if args.command == "evaluate-candidate" else None,
+                    args.candidate.read_text(encoding="utf-8")
+                    if args.command == "evaluate-candidate"
+                    else None,
                     IndexSettings(
                         max_packets=settings.max_packets, max_block_bytes=settings.max_block_bytes
                     ),

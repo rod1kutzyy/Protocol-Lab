@@ -168,7 +168,9 @@ test('research → counterexample → revision → portable restore → new-capt
 
   await page.goto('http://127.0.0.1:15174')
   const sourceRoot = process.env.PROTOCOL_LAB_E2E_ROOT!
-  await rename(sourceRoot, `${sourceRoot}-unavailable`)
+  // Make this project's old sources unavailable without moving parallel tests' projects.
+  const sourceProject = path.join(sourceRoot, project)
+  await rename(sourceProject, `${sourceProject}-unavailable`)
   await page.getByLabel('Архив проекта ZIP', { exact: true }).setInputFiles(archive)
   await operation(page, '/projects/restore', () => page.getByRole('button', { name: 'Восстановить проект', exact: true }).click())
   await expect(page.getByLabel('Текущий проект')).toContainText('Stage 10 research')

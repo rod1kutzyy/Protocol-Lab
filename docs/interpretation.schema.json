@@ -210,6 +210,13 @@
           "default": true,
           "title": "Exclude Field",
           "type": "boolean"
+        },
+        "coverage_start": {
+          "default": 0,
+          "maximum": 16777216,
+          "minimum": 0,
+          "title": "Coverage Start",
+          "type": "integer"
         }
       },
       "required": [
@@ -1040,6 +1047,16 @@
       "maxLength": 200,
       "minLength": 1,
       "title": "Name",
+      "type": "string"
+    },
+    "direction": {
+      "default": "both",
+      "enum": [
+        "both",
+        "a_to_b",
+        "b_to_a"
+      ],
+      "title": "Direction",
       "type": "string"
     },
     "framing": {

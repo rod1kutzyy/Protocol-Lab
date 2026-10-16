@@ -15,7 +15,7 @@ from protocol_lab.research.action_logs import ActionEvent
 
 Status = Literal["passed", "failed", "unknown", "ambiguous", "not_applicable"]
 STATUSES = ("passed", "failed", "unknown", "ambiguous", "not_applicable")
-VERSION = "validation-v4"
+VERSION = "validation-v5"
 
 
 class CorpusSpec(Record):

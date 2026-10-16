@@ -22,7 +22,12 @@ def check(rule, data, cancelled=lambda: False):
         return "unknown", "checksum field outside message", None, 0
     try:
         covered = covered_bytes(
-            data, start, end, rule.coverage, rule.covered_ranges, rule.exclude_field,
+            data,
+            start,
+            end,
+            rule.coverage,
+            rule.covered_ranges,
+            rule.exclude_field,
             rule.coverage_start,
         )
     except ValueError:
@@ -71,10 +76,18 @@ def propose_checksums(
             for endian in ("big",) if width == 1 else snapshot.spec.search.endians:
                 for coverage in ("before_field", "message"):
                     for coverage_start in range(min(5, snapshot.spec.budget.max_header_bytes)):
-                        configurations.append((relative, offset, name, width, endian, coverage,
-                                               coverage_start))
+                        configurations.append(
+                            (relative, offset, name, width, endian, coverage, coverage_start)
+                        )
     configurations.sort(
-        key=lambda value: (value[0] != "message_end", value[6], value[1], value[2], value[4], value[5])
+        key=lambda value: (
+            value[0] != "message_end",
+            value[6],
+            value[1],
+            value[2],
+            value[4],
+            value[5],
+        )
     )
     for relative, offset, name, width, endian, coverage, coverage_start in configurations:
         if trials.used >= trials.maximum:

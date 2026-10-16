@@ -377,7 +377,9 @@ def snapshot(
             ):
                 raise StorageError("Snapshot exceeds file/expanded-size limits")
         bundle = Bundle(project_id=project_id, members=members, table_counts=counts)
-        (destination / "bundle.json").write_text(bundle.model_dump_json(indent=2) + "\n", encoding="utf-8")
+        (destination / "bundle.json").write_text(
+            bundle.model_dump_json(indent=2) + "\n", encoding="utf-8"
+        )
     check_cancel(cancelled)
     return bundle
 
@@ -470,7 +472,9 @@ def verify_bundle(directory, cancelled=lambda: False):
                 raise StorageError(f"Bundle symlink: {name}")
             if path.stat().st_size != member.size_bytes or sha256_file(path) != member.sha256:
                 raise StorageError(f"Bundle checksum mismatch: {name}")
-        project = ProjectManifest.model_validate_json((directory / "manifest.json").read_text(encoding="utf-8"))
+        project = ProjectManifest.model_validate_json(
+            (directory / "manifest.json").read_text(encoding="utf-8")
+        )
         if (
             project.project_id != bundle.project_id
             or project.format != "protocol-lab-project"

@@ -99,3 +99,40 @@ baseline для 1000 сообщений: `benchmarks/inference-a4-windows.json`.
 Linux control workload 100 MiB/250000 packets, PostgreSQL publication, UI чтение
 и concurrency этим baseline не проверены. Эти проверки остаются отдельными
 приёмочными воротами, пока требуемый стенд не доступен.
+
+## Исправления проверки правил (16 октября 2026)
+
+`inference-v5` проверяет фиксированные counter/timestamp candidates через тот же
+Construct parser и `CorpusEvaluator`, что и сохранённую модель. Drift, clock
+offset, интервалы packet timestamps, обратный ход часов и недоступные переходы
+имеют одинаковую семантику в обоих путях. Первое сообщение счётчика теперь явно
+даёт Unknown: предыдущий переход ещё не наблюдался. Discovery остаётся поиском
+по выбранной выборке; его метрики не подменяют итоговую проверку корпуса.
+
+`validation-v5` сравнивает parameter mapping с исходным представлением поля:
+ширина, signedness, endian и Base64 не исчезают после декодирования целого числа.
+Старые результаты сохраняются; проверка актуальности отмечает смену движка.
+Content hashes прежних моделей и формат переносимого проекта не меняются.
+
+Counter, timestamp, session-region и copied-value discovery учитывают общий
+`max_evidence_bytes` до добавления каждой строки в память, включая `extend`.
+Учёт консервативный: созданные свидетельства расходуют бюджет даже при последующем
+отсеве кандидата. При исчерпании завершённый результат не публикуется.
+
+Регрессии: `backend/tests/test_inference_regressions.py` проверяет независимые
+ожидаемые статусы и совпадение кандидата/модели для drift обоих знаков, отсутствия
+времени, обратного хода часов, relative-clock intervals, счётчиков с переполнением,
+всех трёх шагов, разрывов, неоднозначных данных, неполного сообщения и девяти
+checksum алгоритмов в обоих endian. Отдельно проверяются ширина/endian mapping
+и исчерпанный evidence budget всех четырёх relational detectors.
+Экспортированные inference/interpretation JSON Schema и OpenAPI сверяются с runtime
+в автоматических тестах; TypeScript-типы получены из обновлённого OpenAPI.
+
+Проверка исправлений на macOS ARM64, 16 октября 2026: полный backend-набор —
+378 passed без skipped, включая PostgreSQL 17 в отдельном временном контейнере;
+frontend — 19 passed; полный Playwright runner — 8 passed, включая A1/A4 и
+restore/CLI; production build, Ruff lint/format и `git diff --check` прошли.
+Новый regression module содержит 45 сценариев; на исходном коммите 24 из них
+падают, после исправлений проходят. Полный Linux control workload не запускался.
+Остались предупреждения зависимостей: Starlette/httpx deprecation, размер Monaco
+bundle и отсутствующий source map Monaco; проверкам они не препятствуют.

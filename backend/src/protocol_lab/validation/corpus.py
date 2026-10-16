@@ -144,7 +144,9 @@ class CorpusEvaluator:
                                 "direction": None,
                             }
                         ),
-                        "not_applicable" if self.first.diagnostic == "outside_model_direction_scope" else "unknown",
+                        "not_applicable"
+                        if self.first.diagnostic == "outside_model_direction_scope"
+                        else "unknown",
                         "no eligible parsed messages",
                         (),
                     )
@@ -279,7 +281,12 @@ class CorpusEvaluator:
                 prior_clock = last_clock.get(item.stream_id)
                 last_clock[item.stream_id] = interval
                 if prior_clock is not None and interval[1] < prior_clock[0]:
-                    yield item, "unknown", "capture_clock_nonmonotonic; clock prerequisite uncertain", ()
+                    yield (
+                        item,
+                        "unknown",
+                        "capture_clock_nonmonotonic; clock prerequisite uncertain",
+                        (),
+                    )
                     continue
                 scale = {"s": 10**9, "ms": 10**6, "us": 1000, "ns": 1}[check.unit]
                 if check.epoch == "session_relative":
@@ -334,7 +341,13 @@ class CorpusEvaluator:
                 )
                 yield (
                     item,
-                    "passed" if matched else "ambiguous" if overlapping else "unknown" if unknown else "failed",
+                    "passed"
+                    if matched
+                    else "ambiguous"
+                    if overlapping
+                    else "unknown"
+                    if unknown
+                    else "failed",
                     ("exact later copy" if matched else "no established later copy"),
                     (matched.item.anchor,) if matched else (),
                 )
@@ -399,20 +412,16 @@ class CorpusEvaluator:
                 except (KeyError, TypeError, ValueError, UnicodeError, OverflowError):
                     yield item, "unknown", "parameter path/representation unavailable", ()
                     continue
-                actual = values.get(check.field)
-                if isinstance(actual, int) and check.encoding != "integer":
-                    actual = fact.raw_values.get(check.field)
-                if (
-                    isinstance(actual, int)
-                    and check.encoding == "integer"
-                    and check.base64 == "none"
-                ):
-                    expected = int.from_bytes(encoded, check.endian, signed=check.signed)
-                else:
-                    expected = encoded
+                # A mapping tests a byte representation, including width and endian.
+                # Decoding both sides as integers would erase those constraints.
+                actual = (
+                    fact.raw_values.get(check.field)
+                    if isinstance(values.get(check.field), int)
+                    else values.get(check.field)
+                )
                 yield (
                     item,
-                    "unknown" if actual is None else "passed" if actual == expected else "failed",
+                    "unknown" if actual is None else "passed" if actual == encoded else "failed",
                     (f"event={events[0].id}; explicit parameter representation compared"),
                     (),
                 )

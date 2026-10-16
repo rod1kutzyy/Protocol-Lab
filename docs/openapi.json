@@ -5130,6 +5130,13 @@
             "title": "Coverage",
             "default": "ranges"
           },
+          "coverage_start": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Coverage Start",
+            "default": 0
+          },
           "framing": {
             "anyOf": [
               {
@@ -9830,7 +9837,7 @@
           "engine_version": {
             "type": "string",
             "title": "Engine Version",
-            "default": "validation-v4"
+            "default": "validation-v5"
           },
           "sources": {
             "items": {

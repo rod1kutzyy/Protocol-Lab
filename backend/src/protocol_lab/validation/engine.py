@@ -159,9 +159,14 @@ def validate_stream(
     if model.direction not in {"both", stream.direction}:
         yield ValidationItem(
             id=item_id(run_id, capture.id, anchor, "stream_diagnostic"),
-            capture_id=capture.id, session_id=stream.session_id, stream_id=stream.id,
-            direction=stream.direction, anchor=anchor, kind="stream_diagnostic",
-            status="not_applicable", diagnostic="outside_model_direction_scope",
+            capture_id=capture.id,
+            session_id=stream.session_id,
+            stream_id=stream.id,
+            direction=stream.direction,
+            anchor=anchor,
+            kind="stream_diagnostic",
+            status="not_applicable",
+            diagnostic="outside_model_direction_scope",
         )
         return
     try:

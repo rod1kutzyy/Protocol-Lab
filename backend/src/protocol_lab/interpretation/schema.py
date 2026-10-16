@@ -197,7 +197,13 @@ class ProtocolModel(Record):
 def canonical(model: ProtocolModel):
     data = model.model_dump(mode="json")
     # Additive DSL defaults must not change the hashes of existing portable models.
-    for key in ("direction", "corpus_checks", "max_corpus_units", "max_corpus_bytes", "max_checksum_bytes"):
+    for key in (
+        "direction",
+        "corpus_checks",
+        "max_corpus_units",
+        "max_corpus_bytes",
+        "max_checksum_bytes",
+    ):
         default = ProtocolModel.model_fields[key].default
         if getattr(model, key) == default:
             data.pop(key)

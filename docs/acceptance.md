@@ -210,3 +210,14 @@ checksum/counter/timestamp drafts и interpretation-2 corpus checks. Typed outco
 сохраняются отдельно от decoded facts и не удваивают byte coverage. Перенос и
 отчёты используют существующий bundle 0007; legacy 0006 остаётся поддержанным.
 Проверки и остающиеся требования к стенду: [inference-a4.md](inference-a4.md).
+
+### Регрессии R2–R4/R6 после ревью A4
+
+Фиксированный counter/timestamp candidate и его исполняемая модель используют общий
+parser/corpus executor; byte mapping сохраняет явно заданные ширину и endian.
+`inference-v5` / `validation-v5` отделяют новые результаты от исторических.
+Тесты `test_inference_regressions.py` задают ожидаемые статусы для корректных данных,
+контрпримеров и неизвестных переходов, а также ограничивают evidence до накопления.
+Schema/OpenAPI snapshot tests предотвращают повторное расхождение контрактов.
+Полный E2E переносит только каталог своего проекта: параллельные исследования
+остаются доступны, а старые источники переносимого проекта физически недоступны.

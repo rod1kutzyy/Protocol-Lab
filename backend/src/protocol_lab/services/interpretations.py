@@ -57,7 +57,9 @@ def interpretation_worker(
                 for piece in pieces:
                     if cancel.is_set():
                         raise WorkCancelled
-                    result = parse_message(model, parser, piece, source, cancel.is_set, stream.direction)
+                    result = parse_message(
+                        model, parser, piece, source, cancel.is_set, stream.direction
+                    )
                     line = result.model_dump_json() + "\n"
                     budget.consume(line)
                     output.write(line)

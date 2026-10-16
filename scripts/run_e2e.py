@@ -48,7 +48,9 @@ def main():
             }
             return subprocess.run(
                 ["npm.cmd" if os.name == "nt" else "npm", "run", "test:e2e"],
-                cwd=ROOT / "frontend", env=env, check=False
+                cwd=ROOT / "frontend",
+                env=env,
+                check=False,
             ).returncode
     finally:
         for schema in schemas:

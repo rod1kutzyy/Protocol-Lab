@@ -280,8 +280,9 @@ def compile_model(model):
     return structure(model.fields)
 
 
-def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=lambda: False,
-                  direction=None):
+def parse_message(
+    model, parser, piece: Piece, source: StreamInput, cancelled=lambda: False, direction=None
+):
     anchor, interval = piece.anchor, piece.anchor.byte_range
     fields, unknown = [], []
     tracker = dict(

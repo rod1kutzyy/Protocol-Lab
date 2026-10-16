@@ -278,6 +278,10 @@ def test_schema_and_canonical_are_deterministic():
     schema = json_schema()
     assert schema["$id"] == "urn:protocol-lab:interpretation-2"
     assert schema["additionalProperties"] is False
+    from pathlib import Path
+
+    exported = Path(__file__).resolve().parents[2] / "docs/interpretation.schema.json"
+    assert json.loads(exported.read_text(encoding="utf-8")) == schema
 
 
 def test_same_construct_model_on_variable_messages_in_real_captures():

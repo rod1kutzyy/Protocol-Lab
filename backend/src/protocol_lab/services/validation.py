@@ -120,7 +120,10 @@ def validation_worker(send, cancel, database_url, project_root, snapshot, artifa
         if cancel.is_set():
             raise WorkCancelled
         run = ValidationRun(snapshot=snapshot, coverage=counter.result())
-        with Path(artifact).open("x", encoding="utf-8") as output, body.open(encoding="utf-8") as source:
+        with (
+            Path(artifact).open("x", encoding="utf-8") as output,
+            body.open(encoding="utf-8") as source,
+        ):
             output.write(run.model_dump_json() + "\n")
             shutil.copyfileobj(source, output, 65536)
             output.flush()

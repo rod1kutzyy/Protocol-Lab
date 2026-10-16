@@ -1534,6 +1534,11 @@ export interface components {
              * @enum {string}
              */
             coverage: "message" | "before_field" | "ranges";
+            /**
+             * Coverage Start
+             * @default 0
+             */
+            coverage_start: number;
             framing?: components["schemas"]["FramingSpec"] | null;
         };
         /** ClockUpdate */
@@ -3455,7 +3460,7 @@ export interface components {
             interpretation_engine_version: string;
             /**
              * Engine Version
-             * @default validation-v4
+             * @default validation-v5
              */
             engine_version: string;
             /** Sources */

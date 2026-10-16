@@ -97,7 +97,11 @@ def covered_bytes(data, start, end, coverage, ranges=(), exclude_field=True, cov
     selected = (
         [(coverage_start, len(data))]
         if coverage == "message"
-        else ([(coverage_start, start)] if coverage == "before_field" else [(r.start, r.end) for r in ranges])
+        else (
+            [(coverage_start, start)]
+            if coverage == "before_field"
+            else [(r.start, r.end) for r in ranges]
+        )
     )
     result = bytearray()
     for left, right in selected:

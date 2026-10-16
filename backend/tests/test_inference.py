@@ -124,6 +124,12 @@ def test_spec_round_trip_defaults_and_schema_artifacts():
         assert json.loads(exported.read_text()) == schema
 
 
+def test_exported_openapi_matches_runtime(tmp_path):
+    exported = FIXTURES.parents[2] / "docs/openapi.json"
+    app = create_app(Settings(database_url=None, project_root=tmp_path))
+    assert json.loads(exported.read_text(encoding="utf-8")) == app.openapi()
+
+
 @pytest.mark.parametrize(
     "change",
     [

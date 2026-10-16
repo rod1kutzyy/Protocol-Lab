@@ -102,7 +102,11 @@ def render_report(directory, output):
     env.filters["pretty"] = lambda value: json.dumps(
         value, ensure_ascii=False, indent=2, default=str
     )
-    template = files("protocol_lab.reports").joinpath("templates/research.md.j2").read_text(encoding="utf-8")
+    template = (
+        files("protocol_lab.reports")
+        .joinpath("templates/research.md.j2")
+        .read_text(encoding="utf-8")
+    )
     output.write(
         env.from_string(template).render(
             project=project,

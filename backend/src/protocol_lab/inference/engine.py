@@ -55,7 +55,7 @@ from protocol_lab.inference.ranking import ranking_key
 from protocol_lab.inference.results import EvaluationRecord
 from protocol_lab.inference.sampling import SampleUnit, select_sample
 
-VERSION = "inference-v4"
+VERSION = "inference-v5"
 DETECTORS = {
     "checksums": "registry-checksums-a4-1",
     "framing": "bounded-framing-1",
@@ -110,6 +110,10 @@ class EvidenceList(list):
         except Exhausted:
             raise ValueError("max_evidence_bytes exceeded; no completed result published") from None
         super().append(item)
+
+    def extend(self, items):
+        for item in items:
+            self.append(item)
 
 
 @dataclass
@@ -951,7 +955,7 @@ def propose_counters(run_id, snapshot, parent, messages, inputs, trials, output_
                             framing=parent.rule.framing,
                         )
                         candidate_id = uuid5(run_id, f"{parent.id}:counters:{content_hash(rule)}")
-                        emitted, statuses, distinct = [], [], set()
+                        emitted, statuses, distinct = EvidenceList(output_meter), [], set()
                         for items in by_stream.values():
                             items.sort(key=lambda row: row[1].byte_range.start)
                             for (_previous, previous_anchor, previous_data), (
@@ -1131,7 +1135,7 @@ def propose_timestamps(run_id, snapshot, parent, messages, inputs, trials, outpu
                             framing=parent.rule.framing,
                         )
                         cid = uuid5(run_id, f"{parent.id}:timestamps:{content_hash(rule)}")
-                        emitted = []
+                        emitted = EvidenceList(output_meter)
                         for item, a, data, interval in timed:
                             value = int.from_bytes(
                                 data[offset : offset + width], endian, signed=signed
@@ -1238,7 +1242,7 @@ def propose_session_regions(run_id, snapshot, parent, messages, inputs, trials, 
                 framing=parent.rule.framing,
             )
             cid = uuid5(run_id, f"{parent.id}:tokens:{content_hash(rule)}")
-            emitted = []
+            emitted = EvidenceList(output_meter)
             for session, rows in sorted(groups.items(), key=lambda pair: str(pair[0])):
                 item, a, data = rows[0]
                 region = anchor(
@@ -1366,7 +1370,7 @@ def propose_copied_values(
                     framing=parent.rule.framing,
                 )
                 cid = uuid5(run_id, f"{parent.id}:tokens:{content_hash(rule)}")
-                emitted = []
+                emitted = EvidenceList(output_meter)
                 emitted_sessions = set()
                 for direction, source_row, target_row in pairs:
                     src_item, src_anchor, src_data, value, _ = source_row
@@ -2093,9 +2097,11 @@ def discover(
     framing_trials_searched = trials.used
     relation_families = sorted(relation_requested)
     relation_meters = {
-        family: Meter(relation_allowance // len(relation_families) + (
-            index < relation_allowance % len(relation_families)
-        )) for index, family in enumerate(relation_families)
+        family: Meter(
+            relation_allowance // len(relation_families)
+            + (index < relation_allowance % len(relation_families))
+        )
+        for index, family in enumerate(relation_families)
     }
     # Both directions receive alternatives; retention is explicit and deterministic.
     cap = min(budget.max_candidates_per_family, budget.max_candidates)
@@ -2253,7 +2259,13 @@ def discover(
                 limited |= relation_trials.used >= relation_trials.maximum
             if "tokens" in requested:
                 found, found_evidence, searched = propose_session_regions(
-                    run_id, snapshot, c, messages, directional, relation_meters["tokens"], output_meter
+                    run_id,
+                    snapshot,
+                    c,
+                    messages,
+                    directional,
+                    relation_meters["tokens"],
+                    output_meter,
                 )
                 candidates.extend(found)
                 evidence.extend(found_evidence)
@@ -2567,140 +2579,83 @@ def typed_evaluation(snapshot, candidate, inputs, cancelled, output_meter):
                 else message_anchor
             )
             add(status, item, loc, diagnostic)
-    elif isinstance(rule, CounterRule):
-        for rows in by_stream.values():
-            rows.sort(key=lambda row: row[1].byte_range.start)
-            transitions = list(zip(rows, rows[1:], strict=False))
-            if not transitions and rows:
-                item, message_anchor, _ = rows[0]
-                add(
-                    "unknown",
-                    item,
-                    message_anchor,
-                    "fewer than two framed messages; transition not testable",
-                )
-            for (_previous, previous_anchor, previous_data), (
-                current,
-                current_anchor,
-                current_data,
-            ) in transitions:
-                field = rule.field
-                start = previous_anchor.byte_range.start + field.offset
-                end = current_anchor.byte_range.start + field.offset + field.width
-                region = anchor(current.stream, start, end)
-                if previous_anchor.byte_range.end != current_anchor.byte_range.start:
-                    add("unknown", current, region, "stream bytes between messages are unavailable")
-                    continue
-                if max(field.offset + field.width, 0) > min(len(previous_data), len(current_data)):
-                    add("unknown", current, region, "counter field is outside a framed message")
-                    continue
-                old = int.from_bytes(
-                    previous_data[field.offset : field.offset + field.width],
-                    field.endian,
-                    signed=field.signed,
-                )
-                new = int.from_bytes(
-                    current_data[field.offset : field.offset + field.width],
-                    field.endian,
-                    signed=field.signed,
-                )
-                delta = (
-                    rule.increment
-                    if rule.step == "fixed"
-                    else rule.increment * len(previous_data)
-                    if rule.step == "message_length"
-                    else rule.increment * max(0, len(previous_data) - field.offset - field.width)
-                )
-                modulus = 1 << (field.width * 8)
-                expected = old + delta
-                if rule.wrap:
-                    if field.signed:
-                        minimum = -(modulus // 2)
-                        expected = (expected - minimum) % modulus + minimum
-                    else:
-                        expected %= modulus
-                distinct.update((old, new))
-                status = "passed" if new == expected else "failed"
-                add(
-                    status,
-                    current,
-                    region,
-                    f"{old} → {new}; expected {expected} under {rule.step} step",
-                )
+    elif isinstance(rule, (CounterRule, TimestampRule)):
+        from protocol_lab.framing.engine import Piece
+        from protocol_lab.inference.compilation import model_draft
+        from protocol_lab.interpretation.document import load_model
+        from protocol_lab.interpretation.engine import compile_model, parse_message
+        from protocol_lab.validation.corpus import CorpusEvaluator
+        from protocol_lab.validation.models import ValidationItem
 
-    elif isinstance(rule, TimestampRule):
-        scale = {"s": 1_000_000_000, "ms": 1_000_000, "us": 1_000, "ns": 1}[rule.unit]
-        offset = int(rule.clock_offset_ns)
-        first_by_stream = {}
-        for rows in by_stream.values():
-            rows.sort(key=lambda row: row[1].byte_range.start)
-            for item, message_anchor, data in rows:
-                field = rule.field
-                region = anchor(
-                    item.stream,
-                    message_anchor.byte_range.start + field.offset,
-                    message_anchor.byte_range.start + field.offset + field.width,
+        draft = model_draft(candidate)
+        if not draft.compilable:
+            raise ValueError("This relational rule cannot be executed as a model")
+        model = load_model(draft.document_json)
+        parser = compile_model(model)
+        relations = CorpusEvaluator(model, candidate.id, cancelled=cancelled)
+        owners = {item.stream.id: item for item in scoped}
+        # Use the bounded framing pass, then the exact parser and corpus executor
+        # used by saved models. Non-message ranges remain prerequisites/barriers.
+        for fact in base.evidence:
+            if cancelled():
+                raise WorkCancelled
+            item = owners[fact.anchor.stream_id]
+            if fact.status == "passed":
+                piece = Piece(
+                    id=uuid5(candidate.id, str(fact.anchor)),
+                    framing_version=str(candidate.id),
+                    kind="message",
+                    anchor=fact.anchor,
+                    boundary_status="known",
+                    data_status="known",
+                    diagnostic="",
                 )
-                if field.offset + field.width > len(data):
-                    add(
-                        "unknown",
-                        item,
-                        message_anchor,
-                        "timestamp field is outside a framed message",
-                    )
-                    continue
-                interval = message_time_interval(item, message_anchor)
-                if interval is None:
-                    add("unknown", item, region, "packet timestamps unavailable for this message")
-                    continue
-                value = int.from_bytes(
-                    data[field.offset : field.offset + field.width],
-                    field.endian,
-                    signed=field.signed,
+                parsed = parse_message(
+                    model, parser, piece, item.source, cancelled, item.stream.direction
                 )
-                distinct.add(value)
-                observed = sum(interval) // 2
-                if rule.epoch == "unix":
-                    expected = value * scale + offset
-                    status = (
-                        "passed"
-                        if interval[0] - rule.tolerance_ns
-                        <= expected
-                        <= interval[1] + rule.tolerance_ns
-                        else "failed"
-                    )
-                    diagnostic = (
-                        f"field={value} {rule.unit}; predicted={expected} ns; "
-                        f"packet interval=[{interval[0]}, {interval[1]}] ns"
-                    )
-                else:
-                    first = first_by_stream.get(item.stream.id)
-                    if first is None:
-                        first_by_stream[item.stream.id] = (value, observed)
-                        status, diagnostic = (
-                            "unknown",
-                            "session-relative baseline; no elapsed interval yet",
+                fields = parsed.fields
+                value = next((f for f in fields if f.path == "value"), None)
+                if value is not None:
+                    distinct.add(int(value.value))
+                status, diagnostic = parsed.status, parsed.diagnostic
+            else:
+                fields = ()
+                status = "unknown" if fact.status == "failed" else fact.status
+                diagnostic = f"framing dependency: {fact.diagnostic}"
+            relations.add(
+                ValidationItem(
+                    id=uuid5(candidate.id, str(fact.anchor)),
+                    capture_id=item.capture.id,
+                    session_id=item.stream.session_id,
+                    stream_id=item.stream.id,
+                    direction=item.stream.direction,
+                    anchor=fact.anchor,
+                    kind="message" if fact.status == "passed" else "leftover",
+                    status=status,
+                    diagnostic=diagnostic,
+                    fields=fields,
+                ),
+                message_time_interval(item, fact.anchor),
+                item.source,
+            )
+        for result in relations.finish():
+            item = owners.get(result.stream_id)
+            region = result.anchor
+            # Counter evidence retains both source messages, as before.
+            if region is not None and result.related_anchors:
+                region = region.model_copy(
+                    update={
+                        "byte_range": ByteRange(
+                            start=min(
+                                a.byte_range.start for a in (region, *result.related_anchors)
+                            ),
+                            end=max(a.byte_range.end for a in (region, *result.related_anchors)),
                         )
-                    else:
-                        first_value, first_time = first
-                        predicted_delta = (value - first_value) * scale
-                        observed_delta = observed - first_time
-                        status = (
-                            "passed"
-                            if abs(observed_delta - predicted_delta) <= rule.tolerance_ns
-                            else "failed"
-                        )
-                        diagnostic = (
-                            f"elapsed field delta={predicted_delta} ns; "
-                            f"packet delta={observed_delta} ns"
-                        )
-                add(
-                    status,
-                    item,
-                    region,
-                    diagnostic,
-                    data[field.offset : field.offset + field.width].hex(),
+                    }
                 )
+            if result.technical_limit is not None:
+                base.complete = False
+            add(result.status, item, region, result.diagnostic)
 
     elif isinstance(rule, RegionRule) and rule.kind in {
         "session_stable_region",
@@ -2842,7 +2797,7 @@ def typed_evaluation(snapshot, candidate, inputs, cancelled, output_meter):
         raise ValueError(f"Typed corpus evaluator does not support {rule.kind}")
 
     for fact in base.evidence:
-        if fact.status == "passed":
+        if isinstance(rule, (CounterRule, TimestampRule)) or fact.status == "passed":
             continue
         status = "unknown" if fact.status == "failed" else fact.status
         statuses.append(status)

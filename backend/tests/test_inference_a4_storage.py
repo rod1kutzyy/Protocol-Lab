@@ -126,16 +126,18 @@ def test_a4_crc_draft_relations_gui_cli_report_and_relocated_restore(
             capture_id=UUID(captures[1]),
         )
         cli = json.loads(output.getvalue())["results"]
+
         def signature(rows):
             return sorted(
-            (
-                row["kind"],
-                row["status"],
-                row["diagnostic"],
-                json.dumps(row["fields"], sort_keys=True),
+                (
+                    row["kind"],
+                    row["status"],
+                    row["diagnostic"],
+                    json.dumps(row["fields"], sort_keys=True),
+                )
+                for row in rows
             )
-            for row in rows
-        )
+
         assert signature(gui) == signature(cli)
         bundle_path = tmp_path / "a4-bundle"
         snapshot(repository, UUID(project), bundle_path)
