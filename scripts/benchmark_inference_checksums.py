@@ -1,4 +1,4 @@
-"""Native bounded A4 file-adapter measurement; PostgreSQL/UI/concurrency are excluded."""
+"""Native bounded checksum analysis file-adapter measurement; PostgreSQL/UI/concurrency are excluded."""
 
 import argparse
 import ctypes
@@ -74,13 +74,13 @@ def main():
         messages.append(body + zlib.crc32(body).to_bytes(4, "little"))
     data = b"".join(messages)
     phases = {}
-    with tempfile.TemporaryDirectory(prefix="protocol-lab-a4-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="protocol-lab-checksums-") as temporary:
         root = Path(temporary)
         source = root / "source.pcap"
         source.write_bytes(capture(data, list(range(1400, len(data), 1400))))
         capture_id = uuid5(NAMESPACE_URL, f"protocol-lab:capture:{sha256_file(source)}")
         spec = {
-            "corpus_version_id": str(uuid5(capture_id, "a4-benchmark")),
+            "corpus_version_id": str(uuid5(capture_id, "checksums-benchmark")),
             "detectors": [{"family": "framing"}, {"family": "checksums"}],
             "split": {
                 "discovery_ids": [str(capture_id)],
@@ -140,7 +140,7 @@ def main():
             time.perf_counter() - started
         )
         result = {
-            "profile": "Native bounded A4 file adapter; not the Linux control workload",
+            "profile": "Native bounded checksum analysis file adapter; not the Linux control workload",
             "platform": platform.platform(),
             "machine": platform.machine(),
             "python": platform.python_version(),

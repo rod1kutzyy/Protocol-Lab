@@ -57,16 +57,16 @@ from protocol_lab.inference.sampling import SampleUnit, select_sample
 
 VERSION = "inference-v5"
 DETECTORS = {
-    "checksums": "registry-checksums-a4-1",
+    "checksums": "registry-checksums-1",
     "framing": "bounded-framing-1",
-    "structure": "structure-a2-1",
+    "structure": "structure-1",
     "entropy": "profile-1",
     "groups": "message-groups-1",
     "events": "event-windows-1",
     "data_mapping": "parameter-mapping-1",
-    "counters": "counter-relations-a3-1",
-    "tokens": "session-copy-relations-a3-1",
-    "timestamps": "timestamp-relations-a3-1",
+    "counters": "counter-relations-1",
+    "tokens": "session-copy-relations-1",
+    "timestamps": "timestamp-relations-1",
 }
 
 
@@ -749,7 +749,7 @@ def propose_delimiters(run_id, snapshot, parent, messages, inputs, output_meter)
                     f"полями в {support} сообщениях; структурный кандидат."
                 ),
                 "limitations": (
-                    "Проверены только сообщения выбранного A1-фрейминга.",
+                    "Проверены только сообщения выбранного правила фрейминга.",
                     "Экранирование, кавычки, вложенность и нулевой padding не выводились.",
                 ),
             }
@@ -2510,7 +2510,7 @@ def make_region(run_id, snapshot, parent, rule, messages, inputs, output_meter):
 
 
 def typed_evaluation(snapshot, candidate, inputs, cancelled, output_meter):
-    """Execute A3 relations on the target corpus with their frozen framing rule."""
+    """Execute frozen cross-message rules on the target corpus."""
     rule = candidate.rule
     framing = getattr(rule, "framing", None)
     if framing is None:

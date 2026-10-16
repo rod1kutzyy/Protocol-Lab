@@ -6802,11 +6802,6 @@
             "title": "Version",
             "default": "0.1.0"
           },
-          "stage": {
-            "type": "integer",
-            "title": "Stage",
-            "default": 10
-          },
           "persistence": {
             "type": "string",
             "title": "Persistence",
@@ -7447,12 +7442,6 @@
       },
       "InferenceCapabilities": {
         "properties": {
-          "stage": {
-            "type": "string",
-            "const": "A4",
-            "title": "Stage",
-            "default": "A4"
-          },
           "contract_version": {
             "type": "string",
             "title": "Contract Version",
@@ -7473,7 +7462,7 @@
           "budget_profile": {
             "type": "string",
             "title": "Budget Profile",
-            "default": "bounded_a4"
+            "default": "bounded"
           },
           "detectors": {
             "items": {

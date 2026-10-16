@@ -1,4 +1,4 @@
-"""Bounded strict JSON loading, shared by future GUI/CLI adapters."""
+"""Bounded strict JSON loading, shared by GUI/CLI adapters."""
 
 import json
 import math

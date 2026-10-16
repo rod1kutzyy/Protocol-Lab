@@ -1,4 +1,4 @@
-"""Deterministic A1 searches on reconstructed byte streams, without packet boundaries."""
+"""Deterministic discovery searches on reconstructed byte streams, without packet boundaries."""
 
 import hashlib
 from datetime import UTC, datetime
@@ -89,7 +89,7 @@ def setup(data, holdout=None, **updates):
             id=corpus,
             corpus_id=UUID(int=3),
             project_id=project,
-            name="Synthetic A1",
+            name="Synthetic discovery",
             spec=dict(capture_ids=[s.id for s in sources]),
             sha256="0" * 64,
             created_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -172,7 +172,7 @@ def test_fixed_and_marker_candidates_and_no_semantic_claim():
     assert run.coverage.stream_bytes == len(inputs[0].source.read_bytes(0, inputs[0].stream.extent))
 
 
-def test_a2_delimiter_and_repeated_opcode_groups_are_proposed_with_evidence():
+def test_delimiter_and_repeated_opcode_groups_are_proposed_with_evidence():
     payload = b"ab|cd|e" + b"xy|zq|r" + b"mn|op|q" + b"uv|wx|y"
     snapshot, inputs = setup(
         payload,
@@ -201,7 +201,7 @@ def test_a2_delimiter_and_repeated_opcode_groups_are_proposed_with_evidence():
     assert any(e.candidate_id == opcodes[0].id and e.anchor is not None for e in evidence)
 
 
-def test_a2_event_windows_preserve_unknown_and_overlapping_ambiguity():
+def test_event_windows_preserve_unknown_and_overlapping_ambiguity():
     payload = b"".join(bytes([1, index, 65, 66]) for index in range(1, 7))
     snapshot, inputs = setup(
         payload,
@@ -279,7 +279,7 @@ def test_a2_event_windows_preserve_unknown_and_overlapping_ambiguity():
     }
 
 
-def test_a2_parameter_mapping_searches_only_declared_values_in_known_stream_bytes():
+def test_parameter_mapping_searches_only_declared_values_in_known_stream_bytes():
     payload = b"prefix-alpha-middle-beta-suffix"
     snapshot, inputs = setup(
         payload,
@@ -297,7 +297,7 @@ def test_a2_parameter_mapping_searches_only_declared_values_in_known_stream_byte
     )
 
 
-def test_a2_parameter_mapping_matches_values_across_internal_scan_chunks():
+def test_parameter_mapping_matches_values_across_internal_scan_chunks():
     payload = b"x" * 65534 + b"alpha" + b"y" * 65534 + b"beta"
     snapshot, inputs = setup(
         payload,
@@ -316,7 +316,7 @@ def test_a2_parameter_mapping_matches_values_across_internal_scan_chunks():
     assert {65534, 131073} <= starts
 
 
-def test_a2_parameter_mapping_checks_numeric_text_and_integer_widths():
+def test_parameter_mapping_checks_numeric_text_and_integer_widths():
     log_id, first, second = UUID(int=910), UUID(int=911), UUID(int=912)
     payload = b"prefix" + (640).to_bytes(2, "little") + b"middle" + (960).to_bytes(2, "little")
     snapshot, inputs = setup(payload, detectors=[dict(family="data_mapping")])
@@ -602,7 +602,7 @@ def _evaluation_snapshot(snapshot, candidate):
     )
 
 
-def test_a3_counter_wrap_candidate_executes_as_a_frozen_typed_rule():
+def test_counter_wrap_candidate_executes_as_a_frozen_typed_rule():
     payload = b"".join(bytes([value]) + b"xyz" for value in (254, 255, 0, 1, 2, 3))
     snapshot, inputs = setup(
         payload,
@@ -636,7 +636,7 @@ def test_a3_counter_wrap_candidate_executes_as_a_frozen_typed_rule():
     assert [fact.status for fact in facts] == ["unknown"] + ["passed"] * 5
 
 
-def test_a3_timestamp_candidate_uses_packet_intervals_and_one_shared_offset():
+def test_timestamp_candidate_uses_packet_intervals_and_one_shared_offset():
     epoch_ns = 1_700_000_000_000_000_000
     seconds = 1_700_000_000
     payload = b"".join((seconds + i).to_bytes(4, "little") + b"ABCD" for i in range(5))
@@ -673,7 +673,7 @@ def test_a3_timestamp_candidate_uses_packet_intervals_and_one_shared_offset():
     assert all(fact.status == "passed" for fact in facts)
 
 
-def test_a3_session_stable_region_requires_multiple_observed_sessions():
+def test_session_stable_region_requires_multiple_observed_sessions():
     def session(token):
         return b"".join(bytes([i]) + token + b"xyz" for i in range(5))
 
@@ -705,7 +705,7 @@ def test_a3_session_stable_region_requires_multiple_observed_sessions():
     )
 
 
-def test_a3_exact_reverse_copy_is_proposed_and_evaluated_with_source_anchors():
+def test_exact_reverse_copy_is_proposed_and_evaluated_with_source_anchors():
     from protocol_lab.inference.engine import StreamData
 
     source_data = b"".join(i.to_bytes(4, "little") + b"abcd" for i in range(1, 6))

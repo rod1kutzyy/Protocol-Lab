@@ -1,4 +1,4 @@
-"""Real PostgreSQL A4 workflow, restored into another isolated DB schema and root."""
+"""Real PostgreSQL checksum analysis workflow, restored into another isolated DB schema and root."""
 
 import io
 import json
@@ -18,12 +18,12 @@ from protocol_lab.storage.portable import restore, snapshot, verify_bundle
 FIXTURES = Path(__file__).resolve().parents[2] / "tests/fixtures/inference"
 
 
-def test_a4_crc_draft_relations_gui_cli_report_and_relocated_restore(
-    storage, tmp_path, monkeypatch
-):
+def test_crc_draft_relations_gui_cli_report_and_relocated_restore(storage, tmp_path, monkeypatch):
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "A4 acceptance"}).json()["id"]
+        project = client.post(
+            "/api/v1/projects", json={"name": "checksum analysis acceptance"}
+        ).json()["id"]
         captures = []
         for name in ("crc-discovery", "crc-holdout"):
             imported = finish(client, upload(client, project, f"inference/{name}.pcap"))
@@ -92,7 +92,7 @@ def test_a4_crc_draft_relations_gui_cli_report_and_relocated_restore(
         saved = client.post(
             f"/api/v1/projects/{project}/interpretations",
             json={
-                "document_json": (FIXTURES / "a4-model.json").read_text(),
+                "document_json": (FIXTURES / "crc-counter-model.json").read_text(),
                 "parent_id": None,
             },
         ).json()
@@ -139,7 +139,7 @@ def test_a4_crc_draft_relations_gui_cli_report_and_relocated_restore(
             )
 
         assert signature(gui) == signature(cli)
-        bundle_path = tmp_path / "a4-bundle"
+        bundle_path = tmp_path / "checksums-bundle"
         snapshot(repository, UUID(project), bundle_path)
         assert verify_bundle(bundle_path).metadata_schema_revision == "0007_inference"
         report = io.StringIO()

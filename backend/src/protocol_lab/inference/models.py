@@ -1,4 +1,4 @@
-"""Closed, bounded A0 contracts; these records do not claim detector availability."""
+"""Closed, bounded inference contracts; detector availability is reported separately."""
 
 import hashlib
 import json

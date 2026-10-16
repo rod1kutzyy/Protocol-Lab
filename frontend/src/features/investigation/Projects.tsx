@@ -36,7 +36,6 @@ export function Projects() {
           <ErrorMessage error={create.error} />
         </div>
       </details>
-      {opened.data && <span className="muted text-xs project-id">ID {opened.data.id.slice(0, 8)} · локальный проект</span>}
     </div>
     <ErrorMessage error={projects.error ?? (missing ? null : opened.error)} />
     {opened.data && projectId && !missing ? <Workspace key={projectId} project={opened.data} /> : <div className="panel empty-state"><FolderOpen size={32} aria-hidden="true" /><h2>Откройте или создайте проект</h2><p>Импортируйте PCAP/PCAPNG, выберите соединение и исследуйте исходные байты.</p></div>}

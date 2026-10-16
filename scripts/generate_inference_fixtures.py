@@ -1,4 +1,4 @@
-"""Deterministic synthetic A1 protocol bytes; independent TCP segmentation and values."""
+"""Deterministic synthetic discovery protocol bytes; independent TCP segmentation and values."""
 
 import hashlib
 import io
@@ -41,7 +41,7 @@ def main():
     def crc_messages(sizes, corrupt=False):
         records = []
         for index, size in enumerate(sizes):
-            payload = hashlib.shake_256(f"a4:{index}:{size}".encode()).digest(size)
+            payload = hashlib.shake_256(f"crc:{index}:{size}".encode()).digest(size)
             body = (
                 b"\xaa\xbb"
                 + (size + 9).to_bytes(2, "little")
@@ -71,7 +71,7 @@ def main():
             (ROOT / f"{name}.pcapng").write_bytes(output.getvalue())
     model = {
         "schema_version": "interpretation-2",
-        "name": "A4 reproducible CRC32 and counter",
+        "name": "Reproducible CRC32 and counter",
         "framing": {
             "rule": {
                 "kind": "length",
@@ -122,7 +122,7 @@ def main():
         ],
         "corpus_checks": [{"kind": "counter", "name": "sequence", "field": "counter"}],
     }
-    (ROOT / "a4-model.json").write_text(json.dumps(model, indent=2) + "\n")
+    (ROOT / "crc-counter-model.json").write_text(json.dumps(model, indent=2) + "\n")
 
 
 if __name__ == "__main__":

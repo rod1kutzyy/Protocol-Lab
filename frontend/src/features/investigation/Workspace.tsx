@@ -82,7 +82,6 @@ export function Workspace({ project }: { project: Project }) {
     <nav className="section-navigation" aria-label="Разделы проекта">
       <p className="eyebrow">Рабочая область</p>
       {navigationItems.map(({ id, label, icon: Icon, hint }) => <a key={id} href={`#${id}`} aria-current={section === id ? 'page' : undefined}><Icon size={18} aria-hidden="true" /><span>{label}<small>{hint}</small></span></a>)}
-      <div className="navigation-help">Локальный проект<br /><span>Оригиналы и версии сохранены отдельно от черновиков.</span></div>
     </nav>
     <main className="workspace-content" id="project-content" tabIndex={-1}>
       <header className="workspace-heading"><div><p className="eyebrow">{project.name}</p><h2 ref={title} tabIndex={-1}>{currentSection.label}</h2></div><small className="muted">{currentSection.hint}</small></header>

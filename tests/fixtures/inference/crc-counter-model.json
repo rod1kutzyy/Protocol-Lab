@@ -1,6 +1,6 @@
 {
   "schema_version": "interpretation-2",
-  "name": "A4 reproducible CRC32 and counter",
+  "name": "Reproducible CRC32 and counter",
   "framing": {
     "rule": {
       "kind": "length",

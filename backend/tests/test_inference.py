@@ -1,4 +1,4 @@
-"""A0 contracts, strict documents and stable discovery/holdout boundaries."""
+"""Strict inference documents and stable discovery/holdout boundaries."""
 
 import hashlib
 import json
@@ -37,7 +37,7 @@ CAPTURE, HOLDOUT, CORPUS, PROJECT = (UUID(int=n) for n in (16, 32, 1, 2))
 
 
 def spec(**updates):
-    document = json.loads((FIXTURES / "a0-spec.json").read_text())
+    document = json.loads((FIXTURES / "spec.json").read_text())
     document.update(updates)
     return InferenceSpec.model_validate(document)
 
@@ -95,7 +95,7 @@ def snapshot_document():
             id=str(CORPUS),
             corpus_id=str(UUID(int=3)),
             project_id=str(PROJECT),
-            name="A0",
+            name="inference contracts",
             spec=dict(capture_ids=[str(CAPTURE), str(HOLDOUT)]),
             sha256="0" * 64,
             created_at=datetime.now(UTC).isoformat(),
@@ -112,7 +112,7 @@ def snapshot_document():
 
 
 def test_spec_round_trip_defaults_and_schema_artifacts():
-    actual = load_document((FIXTURES / "a0-spec.json").read_text())
+    actual = load_document((FIXTURES / "spec.json").read_text())
     assert actual == spec()
     assert actual.budget.max_sample_messages == 5000
     assert actual.search.fixed_size_max == 4096
@@ -396,10 +396,10 @@ def test_base64_provenance_supports_different_lengths_without_fake_source_range(
         TransformMapping(**{**result.model_dump(), "decoded_length": 4})
 
 
-def test_schema_and_spec_api_work_without_db_and_advertise_a4_capabilities(tmp_path):
+def test_schema_and_spec_api_work_without_db_and_advertise_detector_capabilities(tmp_path):
     with TestClient(create_app(Settings(database_url=None, project_root=tmp_path))) as client:
         capability = client.get("/api/v1/inference/capabilities").json()
-        assert capability["stage"] == "A4" and capability["analysis_available"] is True
+        assert capability["analysis_available"] is True
         assert {item["family"] for item in capability["detectors"] if item["available"]} == {
             "framing",
             "structure",
@@ -417,7 +417,7 @@ def test_schema_and_spec_api_work_without_db_and_advertise_a4_capabilities(tmp_p
             assert response.status_code == 200 and response.json() == json_schema(name)
         checked = client.post(
             "/api/v1/inference/spec/check",
-            json={"document_json": (FIXTURES / "a0-spec.json").read_text()},
+            json={"document_json": (FIXTURES / "spec.json").read_text()},
         ).json()
         assert checked["valid"] and not checked["scope_verified"]
         assert client.get("/api/v1/inference/schemas/python").status_code == 422
@@ -431,7 +431,7 @@ def test_schema_and_spec_api_work_without_db_and_advertise_a4_capabilities(tmp_p
         assert (
             client.post(
                 "/api/v1/projects/00000000-0000-0000-0000-000000000001/inference-runs",
-                json={"document_json": (FIXTURES / "a0-spec.json").read_text()},
+                json={"document_json": (FIXTURES / "spec.json").read_text()},
             ).status_code
             == 503
         )

@@ -1,4 +1,4 @@
-"""Reproducible A1 PCAP → shared inference → JSON baseline, not the Linux workload SLA."""
+"""Reproducible discovery PCAP → shared inference → JSON baseline, not the Linux workload SLA."""
 
 import argparse
 import hashlib
@@ -29,7 +29,9 @@ def main():
         + hashlib.shake_256(str(i).encode()).digest(4 + i % 127)
         for i in range(args.messages)
     )
-    with tempfile.TemporaryDirectory(prefix="protocol-lab-a1-benchmark-") as temporary:
+    with tempfile.TemporaryDirectory(
+        prefix="protocol-lab-discovery-benchmark-"
+    ) as temporary:
         directory = Path(temporary)
         path, output = directory / "capture.pcap", directory / "run.json"
         path.write_bytes(capture(data, list(range(1400, len(data), 1400))))
@@ -70,7 +72,7 @@ def main():
             for c in lengths[:5]
         )
         record = {
-            "profile": "A1 tuned local file adapter baseline; no PostgreSQL/browser/holdout",
+            "profile": "discovery tuned local file adapter baseline; no PostgreSQL/browser/holdout",
             "platform": platform.platform(),
             "machine": platform.machine(),
             "python": platform.python_version(),

@@ -1,4 +1,4 @@
-"""A1 publication and adapter contracts; historical A0 records remain readable."""
+"""Inference publication and adapter contracts with backward-compatible records."""
 
 from datetime import datetime
 from typing import Literal

@@ -31,7 +31,6 @@ from protocol_lab.storage.projects import ProjectStore
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str = __version__
-    stage: int = 10
     persistence: str = "not_configured"
 
 

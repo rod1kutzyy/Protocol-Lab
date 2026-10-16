@@ -1,5 +1,5 @@
 {
-  "profile": "Native bounded A4 file adapter; not the Linux control workload",
+  "profile": "Native bounded checksum analysis file adapter; not the Linux control workload",
   "platform": "Windows-10-10.0.19045-SP0",
   "machine": "AMD64",
   "python": "3.12.13",

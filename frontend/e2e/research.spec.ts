@@ -52,7 +52,7 @@ test('research → counterexample → revision → portable restore → new-capt
   page.on('pageerror', e => errors.push(e.message))
   page.on('request', r => { if (/^https?:/.test(r.url()) && !/^http:\/\/127\.0\.0\.1:/.test(r.url())) external.push(r.url()) })
   await page.goto('/')
-  await page.getByLabel('Название проекта', { exact: true }).fill('Stage 10 research')
+  await page.getByLabel('Название проекта', { exact: true }).fill('Portable protocol research')
   const [created] = await Promise.all([
     page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/api/v1/projects')),
     page.getByRole('button', { name: 'Создать проект' }).click(),
@@ -173,7 +173,7 @@ test('research → counterexample → revision → portable restore → new-capt
   await rename(sourceProject, `${sourceProject}-unavailable`)
   await page.getByLabel('Архив проекта ZIP', { exact: true }).setInputFiles(archive)
   await operation(page, '/projects/restore', () => page.getByRole('button', { name: 'Восстановить проект', exact: true }).click())
-  await expect(page.getByLabel('Текущий проект')).toContainText('Stage 10 research')
+  await expect(page.getByLabel('Текущий проект')).toContainText('Portable protocol research')
   await page.getByRole('link', { name: /^Исследование/ }).click()
   await page.getByRole('button', { name: 'Журнал действий', exact: true }).click()
   await page.getByRole('button', { name: 'Открыть связанные байты' }).click()

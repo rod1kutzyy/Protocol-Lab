@@ -52,7 +52,7 @@ def main(argv=None):
     apply.add_argument("--clock-offset-ns", type=int, default=0)
     for name in ("infer", "evaluate-candidate"):
         command = commands.add_parser(
-            name, help="Offline automatic analysis with the shared A4 engine"
+            name, help="Offline automatic analysis with the shared inference engine"
         )
         command.add_argument("--capture", type=Path, action="append", required=True)
         command.add_argument("--output", type=Path, required=True)

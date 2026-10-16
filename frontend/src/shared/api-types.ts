@@ -2216,11 +2216,6 @@ export interface components {
              */
             version: string;
             /**
-             * Stage
-             * @default 10
-             */
-            stage: number;
-            /**
              * Persistence
              * @default not_configured
              */
@@ -2444,12 +2439,6 @@ export interface components {
         /** InferenceCapabilities */
         InferenceCapabilities: {
             /**
-             * Stage
-             * @default A4
-             * @constant
-             */
-            stage: "A4";
-            /**
              * Contract Version
              * @default inference-contracts-1
              */
@@ -2468,7 +2457,7 @@ export interface components {
             scope_verification_available: true;
             /**
              * Budget Profile
-             * @default bounded_a4
+             * @default bounded
              */
             budget_profile: string;
             /** Detectors */

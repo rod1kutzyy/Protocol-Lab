@@ -121,15 +121,26 @@ python run.py --setup --external-db
 uv run --project backend --frozen protocol-lab apply --model tests/fixtures/cli/length-model.json --capture tests/fixtures/framing/length-big.pcap --output validation.json
 ```
 
-CLI использует тот же движок разбора и проверки, что и интерфейс. Подробности
-и команды переноса проекта описаны в [документации CLI и экспорта](docs/portability.md).
+CLI использует тот же движок разбора и проверки, что и интерфейс.
+Справка по командам:
 
-## Разработка и документация
+```sh
+uv run --project backend --frozen protocol-lab --help
+```
+
+Восстановление экспортированного проекта через CLI требует настроенной локальной
+PostgreSQL и применённых миграций (их можно подготовить через `run.py`):
+
+```sh
+uv run --project backend --frozen protocol-lab project restore --archive project.zip
+```
+
+## Разработка
 
 Основной стек: React + TypeScript + Vite, Python + FastAPI, PostgreSQL.
 
 ```sh
-uv run --project backend --frozen ruff check backend scripts run.py
+uv run --project backend --frozen ruff check backend scripts
 uv run --project backend --frozen pytest backend/tests
 npm --prefix frontend test
 npm --prefix frontend run build

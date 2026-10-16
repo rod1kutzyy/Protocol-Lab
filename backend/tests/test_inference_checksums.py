@@ -1,4 +1,4 @@
-"""A4 checks independent registry vectors, real captures, DSL and shared corpus execution."""
+"""Independent checksum vectors, captures, DSL and shared corpus execution."""
 
 import binascii
 import hashlib
@@ -50,7 +50,7 @@ def parsed(data, corpus_checks=(), fields=None, **updates):
     model = ProtocolModel.model_validate(
         dict(
             schema_version="interpretation-2",
-            name="A4 tests",
+            name="checksum analysis tests",
             framing=dict(rule=dict(kind="fixed", size=updates.pop("size", 4))),
             fields=fields,
             corpus_checks=corpus_checks,
@@ -241,7 +241,7 @@ def test_timestamp_exact_ns_drift_reference_and_nonmonotonic_capture_clock():
 def test_cli_apply_freezes_explicit_logs_and_does_not_ignore_missing_prerequisites(tmp_path):
     from protocol_lab.cli.main import main
 
-    document = json.loads((FIXTURES / "a4-model.json").read_text())
+    document = json.loads((FIXTURES / "crc-counter-model.json").read_text())
     document["corpus_checks"].append(dict(kind="event_association", name="action", after_ns=10**9))
     model_path, log_path, mapping_path = (
         tmp_path / name for name in ("model.json", "actions.json", "mapping.json")
@@ -342,8 +342,8 @@ def test_real_pcap_checksum_discovery_draft_holdout_and_counterexample():
         assert result.evaluation.metrics.matched >= 3
 
 
-def test_saved_a4_model_runs_local_and_corpus_checks_on_new_capture():
-    model = load_model((FIXTURES / "a4-model.json").read_text())
+def test_saved_checksum_model_runs_local_and_corpus_checks_on_new_capture():
+    model = load_model((FIXTURES / "crc-counter-model.json").read_text())
     output = io.StringIO()
     counts = apply_capture(model, FIXTURES / "crc-holdout.pcap", output)
     assert counts.message_counts["passed"] == 4
@@ -354,7 +354,7 @@ def test_saved_a4_model_runs_local_and_corpus_checks_on_new_capture():
     assert len({item["id"] for item in body["results"]}) == len(body["results"])
 
 
-def test_a4_report_reads_exact_candidate_evidence_from_derived_artifact(tmp_path, monkeypatch):
+def test_report_reads_exact_candidate_evidence_from_derived_artifact(tmp_path, monkeypatch):
     from protocol_lab.reports import render
 
     path = FIXTURES / "crc-discovery.pcap"
@@ -373,7 +373,10 @@ def test_a4_report_reads_exact_candidate_evidence_from_derived_artifact(tmp_path
     line = (json.dumps({"kind": "evidence", "value": fact}) + "\n").encode()
     (derived / "inference.jsonl").write_bytes(line)
     records = [
-        ("projects", {"id": body["result"]["snapshot"]["project_id"], "name": "A4 report"}),
+        (
+            "projects",
+            {"id": body["result"]["snapshot"]["project_id"], "name": "checksum analysis report"},
+        ),
         (
             "inference_runs",
             {

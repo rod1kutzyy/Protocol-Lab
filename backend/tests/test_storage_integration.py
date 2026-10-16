@@ -75,13 +75,13 @@ def upload(client, project_id, name="ordered.pcap", policy="warn"):
     return response.json()["id"]
 
 
-def test_a1_search_holdout_persistence_and_source_navigation(storage, tmp_path, monkeypatch):
+def test_search_holdout_persistence_and_source_navigation(storage, tmp_path, monkeypatch):
     from protocol_lab.storage.inference import InferenceStore
     from protocol_lab.storage.portable import restore, snapshot, verify_bundle
 
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "A1"}).json()["id"]
+        project = client.post("/api/v1/projects", json={"name": "discovery"}).json()["id"]
         captures = []
         for name in ("length-discovery", "length-holdout"):
             job = finish(client, upload(client, project, f"inference/{name}.pcap"))
@@ -94,7 +94,7 @@ def test_a1_search_holdout_persistence_and_source_navigation(storage, tmp_path, 
         corpus = client.post(
             f"/api/v1/projects/{project}/corpora",
             json={
-                "name": "A1 entire corpus",
+                "name": "discovery entire corpus",
                 "spec": {"capture_ids": captures},
             },
         ).json()
@@ -178,7 +178,7 @@ def test_a1_search_holdout_persistence_and_source_navigation(storage, tmp_path, 
     with TestClient(create_app(settings)) as client:
         assert client.get(f"/api/v1/inference-runs/{run_id}").json() == before
         assert client.get(f"/api/v1/inference-candidates/{id}/evidence").json() == examples
-        checkpoint = tmp_path / "a1-bundle"
+        checkpoint = tmp_path / "discovery-bundle"
         snapshot(repository, UUID(project), checkpoint)
         bundle = verify_bundle(checkpoint)
         assert bundle.format_version == 2
@@ -601,7 +601,7 @@ def test_concurrent_tcp_publication_is_idempotent_and_source_lookup_works(storag
         assert raw[evidence["file_offset"] : evidence["file_offset"] + 5] == b"HELLO"
 
 
-def test_stage4_migration_preserves_populated_stage3_project(storage, monkeypatch):
+def test_migration_preserves_populated_capture_project(storage, monkeypatch):
     repository, settings, _ = storage
     schema = "pl_upgrade_" + uuid4().hex
     with repository.engine.begin() as connection:
@@ -615,7 +615,7 @@ def test_stage4_migration_preserves_populated_stage3_project(storage, monkeypatc
             config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
             command.upgrade(config, "0001_capture_storage")
             old = ProjectStore(engine, settings.project_root)
-            project = old.create("Existing stage 3")
+            project = old.create("Existing capture project")
             capture_id = UUID(old.finalize_import(*prepared(old, project.id))["capture_id"])
             capture = old.get_capture(capture_id)
             source = old.safe_path(project.id, capture.relative_path)
@@ -635,7 +635,7 @@ def test_stage4_migration_preserves_populated_stage3_project(storage, monkeypatc
             connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
 
 
-def test_stage5_session_filters_packet_ranges_and_search_jobs(storage):
+def test_session_filters_packet_ranges_and_search_jobs(storage):
     _, settings, config = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Investigate"}).json()["id"]
@@ -685,7 +685,7 @@ def test_stage5_session_filters_packet_ranges_and_search_jobs(storage):
     command.check(config)
 
 
-def test_stage5_log_mapping_clock_correlation_links_and_restart(storage):
+def test_log_mapping_clock_correlation_links_and_restart(storage):
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Clock"}).json()["id"]
@@ -788,19 +788,24 @@ def test_stage5_log_mapping_clock_correlation_links_and_restart(storage):
     assert not list((settings.project_root / project / ".staging").iterdir())
 
 
-def test_a2_inference_freezes_action_events_and_clock_revision(storage):
+def test_inference_freezes_action_events_and_clock_revision(storage):
     from protocol_lab.storage.inference import InferenceStore
 
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "A2 action freeze"}).json()["id"]
+        project = client.post(
+            "/api/v1/projects", json={"name": "structure and action mapping action freeze"}
+        ).json()["id"]
         capture = finish(client, upload(client, project, "tcp/ordered.pcap"))["result"][
             "capture_id"
         ]
         assert finish(client, reconstruct_job(client, capture))["status"] == "succeeded"
         corpus = client.post(
             f"/api/v1/projects/{project}/corpora",
-            json={"name": "A2 corpus", "spec": {"capture_ids": [capture]}},
+            json={
+                "name": "structure and action mapping corpus",
+                "spec": {"capture_ids": [capture]},
+            },
         ).json()
         log_bytes = (FIXTURES / "actions/clock-offset.csv").read_bytes()
         mapping = {
@@ -871,10 +876,12 @@ def test_a2_inference_freezes_action_events_and_clock_revision(storage):
         assert run.snapshot.spec.logs[0].clock_revision == 2
 
 
-def test_stage5_upgrade_backfills_times_without_rewriting_evidence(storage):
+def test_upgrade_backfills_times_without_rewriting_evidence(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "Existing stage 4"}).json()["id"]
+        project = client.post(
+            "/api/v1/projects", json={"name": "Existing reconstructed project"}
+        ).json()["id"]
         capture = finish(client, upload(client, project, "tcp/ordered.pcap"))["result"][
             "capture_id"
         ]
@@ -900,7 +907,7 @@ def test_stage5_upgrade_backfills_times_without_rewriting_evidence(storage):
             for p in repository.directory(UUID(project)).rglob("*")
             if p.is_file()
         }
-    # Reproduce a populated stage-4 schema only inside this fixture's disposable schema.
+    # Reproduce a populated reconstruction schema only inside this fixture's disposable schema.
     with repository.engine.begin() as connection:
         for table in [
             "inference_evidence",
@@ -935,7 +942,7 @@ def test_stage5_upgrade_backfills_times_without_rewriting_evidence(storage):
     assert all(Path(path).read_bytes() == content for path, content in files.items())
 
 
-def test_stage5_search_never_guesses_overlap_and_log_cancel_is_atomic(storage):
+def test_search_never_guesses_overlap_and_log_cancel_is_atomic(storage):
     _, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Incomplete"}).json()["id"]
@@ -969,7 +976,7 @@ def test_stage5_search_never_guesses_overlap_and_log_cancel_is_atomic(storage):
         assert not list((settings.project_root / project / ".staging").iterdir())
 
 
-def test_stage6_framing_versions_coverage_provenance_observations_and_restart(storage):
+def test_framing_versions_coverage_provenance_observations_and_restart(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Framing"}).json()["id"]
@@ -1053,7 +1060,7 @@ def test_stage6_framing_versions_coverage_provenance_observations_and_restart(st
     command.check(config)
 
 
-def test_stage6_failed_framing_preserves_previous_results_and_unknown_payload(storage):
+def test_failed_framing_preserves_previous_results_and_unknown_payload(storage):
     _, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Framing incomplete"}).json()["id"]
@@ -1079,10 +1086,12 @@ def test_stage6_failed_framing_preserves_previous_results_and_unknown_payload(st
         assert client.get(f"/api/v1/framing-runs/{run_id}/pieces").json()["items"] == pieces
 
 
-def test_stage6_upgrade_preserves_populated_stage5_research(storage):
+def test_upgrade_preserves_populated_investigation(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "Stage 5 evidence"}).json()["id"]
+        project = client.post(
+            "/api/v1/projects", json={"name": "Existing investigation evidence"}
+        ).json()["id"]
         capture = finish(client, upload(client, project, "tcp/ordered.pcap"))["result"][
             "capture_id"
         ]
@@ -1144,7 +1153,7 @@ def test_stage6_upgrade_preserves_populated_stage5_research(storage):
         for p in repository.directory(UUID(project)).rglob("*")
         if p.is_file()
     }
-    # Only this fixture's disposable schema; emulate stage 5 before the adding migration.
+    # Emulate the investigation schema in this fixture before the framing migration.
     with repository.engine.begin() as connection:
         for table in (
             "inference_evidence",
@@ -1169,7 +1178,7 @@ def test_stage6_upgrade_preserves_populated_stage5_research(storage):
     assert all(Path(path).read_bytes() == original for path, original in files.items())
 
 
-def test_stage7_immutable_models_construct_results_provenance_and_restart(storage):
+def test_immutable_models_construct_results_provenance_and_restart(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Interpretation"}).json()["id"]
@@ -1273,7 +1282,7 @@ def test_stage7_immutable_models_construct_results_provenance_and_restart(storag
     command.check(config)
 
 
-def test_stage7_validation_scope_unknowns_and_failure_preserve_evidence(storage):
+def test_validation_scope_unknowns_and_failure_preserve_evidence(storage):
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Uncertain interpretation"}).json()[
@@ -1344,10 +1353,12 @@ def test_stage7_validation_scope_unknowns_and_failure_preserve_evidence(storage)
     )
 
 
-def test_stage7_additive_migration_preserves_existing_framing(storage):
+def test_additive_migration_preserves_existing_framing(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "Stage 6 project"}).json()["id"]
+        project = client.post("/api/v1/projects", json={"name": "Existing framing project"}).json()[
+            "id"
+        ]
         capture = finish(client, upload(client, project, "framing/length-little.pcap"))["result"][
             "capture_id"
         ]
@@ -1414,7 +1425,7 @@ def test_stage7_additive_migration_preserves_existing_framing(storage):
     assert all(Path(p).read_bytes() == data for p, data in files.items())
 
 
-def stage8_model(client, project, spec, constant=None, parent=None):
+def create_validation_model(client, project, spec, constant=None, parent=None):
     field = dict(kind="int", name="n", width=2, signed=False, endian="big")
     if constant is not None:
         field["constant"] = constant
@@ -1432,7 +1443,7 @@ def stage8_model(client, project, spec, constant=None, parent=None):
     return response.json()
 
 
-def stage8_validate(client, project, corpus, version):
+def run_validation(client, project, corpus, version):
     response = client.post(
         f"/api/v1/projects/{project}/validation-runs",
         json={"corpus_version_id": corpus, "interpretation_version_id": version},
@@ -1443,10 +1454,12 @@ def stage8_validate(client, project, corpus, version):
     return completed["result"]["run_id"]
 
 
-def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, monkeypatch):
+def test_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, monkeypatch):
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "A0 limits"}).json()["id"]
+        project = client.post(
+            "/api/v1/projects", json={"name": "inference contracts limits"}
+        ).json()["id"]
         capture = finish(
             client, upload(client, project, "interpretation/arrays-new-parameters.pcap")
         )["result"]["capture_id"]
@@ -1459,7 +1472,7 @@ def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, m
         )["result"]["run_id"]
         document = dict(
             schema_version="interpretation-1",
-            name="A0 array",
+            name="inference contracts array",
             framing=framing,
             max_array_items=2,
             fields=[
@@ -1490,11 +1503,11 @@ def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, m
         corpus = client.post(
             f"/api/v1/projects/{project}/corpora",
             json={
-                "name": "A0",
+                "name": "inference contracts",
                 "spec": {"capture_ids": [capture]},
             },
         ).json()
-        first = stage8_validate(client, project, corpus["id"], version["id"])
+        first = run_validation(client, project, corpus["id"], version["id"])
         first_meta = client.get(f"/api/v1/validation-runs/{first}").json()
         assert first_meta["coverage"]["message_counts"]["unknown"] == 1
         assert first_meta["coverage"]["message_counts"]["failed"] == 0
@@ -1523,7 +1536,7 @@ def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, m
                 "parent_id": version["id"],
             },
         ).json()
-        second = stage8_validate(client, project, corpus["id"], revised["id"])
+        second = run_validation(client, project, corpus["id"], revised["id"])
         assert (
             client.get(f"/api/v1/validation-runs/{second}").json()["coverage"]["message_counts"][
                 "passed"
@@ -1544,7 +1557,7 @@ def test_a0_resource_limits_publish_as_unknown_with_exact_diagnostics(storage, m
         )
 
 
-def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(storage):
+def test_corpus_counterexample_versions_coverage_comparison_and_restart(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Corpus validation"}).json()["id"]
@@ -1554,7 +1567,7 @@ def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(s
             assert finish(client, reconstruct_job(client, capture))["status"] == "succeeded"
             captures.append(capture)
         spec = {"rule": {"kind": "length", "width": 2, "adjustment": 2}}
-        version = stage8_model(client, project, spec, constant=3)
+        version = create_validation_model(client, project, spec, constant=3)
         response = client.post(
             f"/api/v1/projects/{project}/corpora",
             json={"name": "Two captures", "spec": {"capture_ids": captures, "direction": "a_to_b"}},
@@ -1566,7 +1579,7 @@ def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(s
             for p in repository.directory(UUID(project)).rglob("*")
             if p.is_file()
         }
-        first = stage8_validate(client, project, corpus["id"], version["id"])
+        first = run_validation(client, project, corpus["id"], version["id"])
         meta = client.get(f"/api/v1/validation-runs/{first}").json()
         coverage = meta["coverage"]
         assert (
@@ -1589,17 +1602,17 @@ def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(s
         assert detail["fields"][0]["anchor"]["byte_range"] == {"start": 0, "end": 2}
         source = client.get(f"/api/v1/streams/{detail['stream_id']}/bytes?offset=0&length=2").json()
         assert "".join(v["data_hex"] for b in source["blocks"] for v in b["variants"]) == "0004"
-        revised = stage8_model(client, project, spec, parent=version["id"])
+        revised = create_validation_model(client, project, spec, parent=version["id"])
         state = client.get(f"/api/v1/validation-runs/{first}/currentness").json()
         assert state["stale"] and "new_model_version" in state["reasons"]
         assert client.get(f"/api/v1/validation-runs/{first}").json() == meta
-        second = stage8_validate(client, project, corpus["id"], revised["id"])
+        second = run_validation(client, project, corpus["id"], revised["id"])
         second_meta = client.get(f"/api/v1/validation-runs/{second}").json()
         assert second_meta["coverage"]["message_counts"]["passed"] == 4
         comparison = client.get(f"/api/v1/validation-runs/{first}/compare/{second}?limit=1").json()
         assert comparison["counts"] == {"status": 3} and comparison["next_offset"] == 1
         assert comparison["same_sources"] is True
-        repeat = stage8_validate(client, project, corpus["id"], revised["id"])
+        repeat = run_validation(client, project, corpus["id"], revised["id"])
         assert (
             client.get(f"/api/v1/validation-runs/{second}/compare/{repeat}").json()["items"] == []
         )
@@ -1618,7 +1631,7 @@ def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(s
             "new_corpus_version"
             in client.get(f"/api/v1/validation-runs/{second}/currentness").json()["reasons"]
         )
-        third = stage8_validate(client, project, filtered["id"], revised["id"])
+        third = run_validation(client, project, filtered["id"], revised["id"])
         filtered_meta = client.get(f"/api/v1/validation-runs/{third}").json()["coverage"]
         assert (
             filtered_meta["selected_stream_bytes"] == 0
@@ -1638,7 +1651,7 @@ def test_stage8_corpus_counterexample_versions_coverage_comparison_and_restart(s
     command.check(config)
 
 
-def test_stage8_uncovered_missing_reconstruction_and_source_change_are_explicit(storage):
+def test_uncovered_missing_reconstruction_and_source_change_are_explicit(storage):
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Uncovered corpus"}).json()["id"]
@@ -1647,14 +1660,14 @@ def test_stage8_uncovered_missing_reconstruction_and_source_change_are_explicit(
             captures.append(finish(client, upload(client, project, name))["result"]["capture_id"])
         for capture in captures[:2]:
             assert finish(client, reconstruct_job(client, capture))["status"] == "succeeded"
-        version = stage8_model(
+        version = create_validation_model(
             client, project, {"rule": {"kind": "length", "width": 2, "adjustment": 2}}
         )
         corpus = client.post(
             f"/api/v1/projects/{project}/corpora",
             json={"name": "Coverage", "spec": {"capture_ids": captures}},
         ).json()
-        run = stage8_validate(client, project, corpus["id"], version["id"])
+        run = run_validation(client, project, corpus["id"], version["id"])
         meta = client.get(f"/api/v1/validation-runs/{run}").json()
         assert meta["coverage"]["captures_without_reconstruction"] == 1
         assert meta["coverage"]["unframed_bytes"] == 3
@@ -1682,7 +1695,7 @@ def test_stage8_uncovered_missing_reconstruction_and_source_change_are_explicit(
     assert not list((settings.project_root / project / ".staging").iterdir())
 
 
-def test_stage8_hypothesis_evidence_scope_cancellation_and_cross_project_guards(storage):
+def test_hypothesis_evidence_scope_cancellation_and_cross_project_guards(storage):
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Hypotheses"}).json()["id"]
@@ -1739,7 +1752,7 @@ def test_stage8_hypothesis_evidence_scope_cancellation_and_cross_project_guards(
             ).status_code
             == 422
         )
-        version = stage8_model(
+        version = create_validation_model(
             client, project, {"rule": {"kind": "length", "width": 2, "adjustment": 2}}
         )
         corpus = client.post(
@@ -1771,10 +1784,12 @@ def test_stage8_hypothesis_evidence_scope_cancellation_and_cross_project_guards(
         assert client.get(f"/api/v1/hypotheses/{revised['id']}").json() == revised
 
 
-def test_stage8_additive_migration_preserves_populated_stage7_project(storage):
+def test_additive_migration_preserves_populated_interpretation_project(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
-        project = client.post("/api/v1/projects", json={"name": "Stage 7 project"}).json()["id"]
+        project = client.post(
+            "/api/v1/projects", json={"name": "Existing interpretation project"}
+        ).json()["id"]
         capture = finish(client, upload(client, project, "framing/length-big.pcap"))["result"][
             "capture_id"
         ]
@@ -1786,7 +1801,7 @@ def test_stage8_additive_migration_preserves_populated_stage7_project(storage):
         framed = finish(
             client, client.post(f"/api/v1/streams/{stream}/framing", json=spec).json()["id"]
         )["result"]["run_id"]
-        version = stage8_model(client, project, spec)
+        version = create_validation_model(client, project, spec)
         assert (
             finish(
                 client,
@@ -1848,7 +1863,7 @@ def test_stage8_additive_migration_preserves_populated_stage7_project(storage):
     assert all(Path(p).read_bytes() == data for p, data in files.items())
 
 
-def test_stage8_bad_framing_does_not_block_another_capture_and_uncertainty_is_counted(storage):
+def test_bad_framing_does_not_block_another_capture_and_uncertainty_is_counted(storage):
     _, settings, _ = storage
     with TestClient(create_app(settings)) as client:
         project = client.post("/api/v1/projects", json={"name": "Partial validation"}).json()["id"]
@@ -1857,7 +1872,7 @@ def test_stage8_bad_framing_does_not_block_another_capture_and_uncertainty_is_co
             capture = finish(client, upload(client, project, name))["result"]["capture_id"]
             assert finish(client, reconstruct_job(client, capture))["status"] == "succeeded"
             captures.append(capture)
-        version = stage8_model(
+        version = create_validation_model(
             client,
             project,
             {"rule": {"kind": "length", "width": 2, "adjustment": 2}, "max_pieces": 1},
@@ -1866,7 +1881,7 @@ def test_stage8_bad_framing_does_not_block_another_capture_and_uncertainty_is_co
             f"/api/v1/projects/{project}/corpora",
             json={"name": "Partial", "spec": {"capture_ids": captures}},
         ).json()
-        run = stage8_validate(client, project, corpus["id"], version["id"])
+        run = run_validation(client, project, corpus["id"], version["id"])
         meta = client.get(f"/api/v1/validation-runs/{run}").json()
         assert meta["coverage"]["byte_counts"]["unknown"] == 15
         assert meta["coverage"]["message_counts"]["passed"] == 1
@@ -1888,14 +1903,14 @@ def test_stage8_bad_framing_does_not_block_another_capture_and_uncertainty_is_co
             f"/api/v1/projects/{project}/corpora",
             json={"name": "Uncertain", "spec": {"capture_ids": [capture]}},
         ).json()
-        run = stage8_validate(client, project, corpus["id"], raw["id"])
+        run = run_validation(client, project, corpus["id"], raw["id"])
         coverage = client.get(f"/api/v1/validation-runs/{run}").json()["coverage"]
         assert coverage["ambiguous_source_bytes"] > 0 and coverage["unavailable_source_bytes"] > 0
         assert coverage["counts"]["ambiguous"] > 0 and coverage["counts"]["unknown"] > 0
         assert sum(coverage["byte_counts"].values()) == coverage["stream_bytes"]
 
 
-# Stage 9 tests keep both source and destination in independently migrated, test-owned schemas.
+# Portable project tests use independently migrated source and destination schemas.
 def destination_store(storage, tmp_path, monkeypatch):
     from contextlib import contextmanager
 
@@ -1928,7 +1943,7 @@ def destination_store(storage, tmp_path, monkeypatch):
     return isolated()
 
 
-def stage9_research(client):
+def create_portable_research(client):
     project = client.post("/api/v1/projects", json={"name": "Portable research"}).json()["id"]
     capture = finish(client, upload(client, project, "framing/length-big.pcap"))["result"][
         "capture_id"
@@ -1996,7 +2011,7 @@ def stage9_research(client):
     )
     assert link.status_code == 201, link.text
     spec = {"rule": {"kind": "length", "width": 2, "adjustment": 2}}
-    first_model = stage8_model(client, project, spec, constant=3)
+    first_model = create_validation_model(client, project, spec, constant=3)
     framed = finish(
         client, client.post(f"/api/v1/streams/{stream}/framing", json=spec).json()["id"]
     )
@@ -2011,9 +2026,9 @@ def stage9_research(client):
         f"/api/v1/projects/{project}/corpora",
         json={"name": "Selected corpus", "spec": {"capture_ids": [capture]}},
     ).json()
-    first = stage8_validate(client, project, corpus["id"], first_model["id"])
-    revised = stage8_model(client, project, spec, parent=first_model["id"])
-    second = stage8_validate(client, project, corpus["id"], revised["id"])
+    first = run_validation(client, project, corpus["id"], first_model["id"])
+    revised = create_validation_model(client, project, spec, parent=first_model["id"])
+    second = run_validation(client, project, corpus["id"], revised["id"])
     revised_corpus = client.post(
         f"/api/v1/projects/{project}/corpora",
         json={
@@ -2026,7 +2041,7 @@ def stage9_research(client):
     return project, capture, stream, first_model, first, second, log, observation
 
 
-def stage9_operation(client, project, operation):
+def run_project_operation(client, project, operation):
     response = client.post(f"/api/v1/projects/{project}/operations/{operation}", json={})
     assert response.status_code == 202, response.text
     job = finish(client, response.json()["id"])
@@ -2034,12 +2049,14 @@ def stage9_operation(client, project, operation):
     return job["result"]
 
 
-def test_stage9_full_snapshot_archive_restore_without_old_directory(storage, tmp_path, monkeypatch):
+def test_full_snapshot_archive_restore_without_old_directory(storage, tmp_path, monkeypatch):
     from protocol_lab.storage.portable import TABLES, pack, snapshot, verify_bundle
 
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:
-        project, capture, stream, model, first, second, log, observation = stage9_research(client)
+        project, capture, stream, model, first, second, log, observation = create_portable_research(
+            client
+        )
         # Unrelated research must never enter this project's snapshot.
         other = client.post("/api/v1/projects", json={"name": "Unrelated private research"}).json()[
             "id"
@@ -2068,24 +2085,24 @@ def test_stage9_full_snapshot_archive_restore_without_old_directory(storage, tmp
             response = client.get("/api/v1" + path)
             assert response.status_code == 200, (path, response.text)
             before[path] = response.json()
-        saved = stage9_operation(client, project, "save")
+        saved = run_project_operation(client, project, "save")
         checkpoint = repository.directory(UUID(project)) / saved["checkpoint"]
         bundle = verify_bundle(checkpoint)
         assert all(
             bundle.table_counts[name] > 0 for name in TABLES if not name.startswith("inference_")
         ), bundle.table_counts
-        exported = stage9_operation(client, project, "export")
+        exported = run_project_operation(client, project, "export")
         archive_response = client.get(exported["download_url"])
         assert archive_response.status_code == 200
         archive = tmp_path / "moved-project.zip"
         archive.write_bytes(archive_response.content)
-        report_result = stage9_operation(client, project, "report")
+        report_result = run_project_operation(client, project, "report")
         report = client.get(report_result["download_url"]).text
         assert "Основания: Observed examples" in report and "Друг" not in report
         assert "#### failed — 2 результатов" in report and "File offset" in report
         assert "Other commands" in report and "контрпримеры" in report
         assert repository.get_capture(UUID(capture)).sha256 in report
-        assert stage9_operation(client, project, "verify")["outcome"] == "verified"
+        assert run_project_operation(client, project, "verify")["outcome"] == "verified"
     # Physically make the original inaccessible; destination has a separate DB schema and root.
     old_root = settings.project_root.with_name("unavailable-original")
     settings.project_root.rename(old_root)
@@ -2106,7 +2123,7 @@ def test_stage9_full_snapshot_archive_restore_without_old_directory(storage, tmp
                 for path in paths:
                     assert client.get("/api/v1" + path).json() == before[path], path
                 assert client.get(f"/api/v1/validation-runs/{first}/currentness").json()["stale"]
-                assert stage9_operation(client, project, "verify")["outcome"] == "verified"
+                assert run_project_operation(client, project, "verify")["outcome"] == "verified"
                 # Reimporting the same original preserves capture identity and attached research.
                 duplicate = finish(client, upload(client, project, "framing/length-big.pcap"))
                 assert duplicate["result"]["outcome"] == "already_imported"
@@ -2133,7 +2150,7 @@ def test_stage9_full_snapshot_archive_restore_without_old_directory(storage, tmp
     command.check(config)
 
 
-def test_stage9_gui_cli_values_diagnostics_and_export_model(storage, tmp_path):
+def test_gui_cli_values_diagnostics_and_export_model(storage, tmp_path):
     import io
 
     from protocol_lab.interpretation.schema import ProtocolModel, canonical
@@ -2171,7 +2188,7 @@ def test_stage9_gui_cli_values_diagnostics_and_export_model(storage, tmp_path):
                 f"/api/v1/projects/{project}/corpora",
                 json={"name": name, "spec": {"capture_ids": [capture]}},
             ).json()
-            run = stage8_validate(client, project, corpus["id"], version["id"])
+            run = run_validation(client, project, corpus["id"], version["id"])
             exported = finish(
                 client, client.post(f"/api/v1/validation-runs/{run}/export").json()["id"]
             )
@@ -2228,7 +2245,7 @@ def test_unreconstructed_directions_publication_scope_restart_and_restore(
                 f"/api/v1/projects/{project}/corpora",
                 json={"name": "Scope", "spec": {"capture_ids": [capture], **filters}},
             ).json()
-            run = stage8_validate(client, project, corpus["id"], version["id"])
+            run = run_validation(client, project, corpus["id"], version["id"])
             runs.append(run)
             meta = client.get(f"/api/v1/validation-runs/{run}").json()
             assert meta["coverage"]["unreconstructed_directions"] == expected
@@ -2298,7 +2315,7 @@ def test_unreconstructed_directions_publication_scope_restart_and_restore(
         store.publish(frozen, omitted, {})
 
 
-def test_stage9_checksum_cancellation_invalid_snapshot_and_rollback(storage, tmp_path, monkeypatch):
+def test_checksum_cancellation_invalid_snapshot_and_rollback(storage, tmp_path, monkeypatch):
     from protocol_lab.storage.portable import pack, restore, snapshot
 
     repository, settings, _ = storage
@@ -2352,7 +2369,7 @@ def test_stage9_checksum_cancellation_invalid_snapshot_and_rollback(storage, tmp
             assert destination.list_projects(0, 100) == []
 
 
-def test_stage9_cli_project_commands_and_consistent_clock_snapshot(storage, tmp_path, monkeypatch):
+def test_cli_project_commands_and_consistent_clock_snapshot(storage, tmp_path, monkeypatch):
     from sqlalchemy import update
 
     from protocol_lab.cli.main import main
@@ -2361,7 +2378,9 @@ def test_stage9_cli_project_commands_and_consistent_clock_snapshot(storage, tmp_
 
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project, capture, stream, model, first, second, log, observation = stage9_research(client)
+        project, capture, stream, model, first, second, log, observation = create_portable_research(
+            client
+        )
     monkeypatch.setenv("PROTOCOL_LAB_PROJECT_ROOT", str(settings.project_root))
     checkpoint = tmp_path / "cli-checkpoint"
     changed = False
@@ -2405,12 +2424,12 @@ def test_stage9_cli_project_commands_and_consistent_clock_snapshot(storage, tmp_
         assert int(clock["clock_offset_ns"]) == 123456789012345
 
 
-def test_stage10_configured_limits_preserve_published_research(storage):
+def test_configured_limits_preserve_published_research(storage):
     from dataclasses import replace
 
     repository, settings, _ = storage
     with TestClient(create_app(settings)) as client:
-        project, capture, stream, version, first, _, _, _ = stage9_research(client)
+        project, capture, stream, version, first, _, _, _ = create_portable_research(client)
         previous = client.get(f"/api/v1/validation-runs/{first}").json()
         observations = client.get(f"/api/v1/projects/{project}/observations").json()
         evidence = client.get(f"/api/v1/streams/{stream}/bytes?offset=0&length=2").json()
@@ -2447,7 +2466,7 @@ def test_stage10_configured_limits_preserve_published_research(storage):
     assert not list(repository.safe_path(UUID(project), ".staging").iterdir())
 
 
-def test_stage10_real_processing_cancellation_and_concurrent_reads(storage, tmp_path):
+def test_real_processing_cancellation_and_concurrent_reads(storage, tmp_path):
     """Cancel after genuine worker progress, with old bytes readable on the same API."""
 
     import dpkt
@@ -2470,7 +2489,7 @@ def test_stage10_real_processing_cancellation_and_concurrent_reads(storage, tmp_
             )
             writer.writepkt(frame, ts=1700000000 + i / 1000)
     with TestClient(create_app(settings)) as client:
-        project, old_capture, old_stream, _, first, _, _, _ = stage9_research(client)
+        project, old_capture, old_stream, _, first, _, _, _ = create_portable_research(client)
         stable = client.get(f"/api/v1/streams/{old_stream}/bytes?offset=0&length=2").json()
         uploaded = client.post(
             f"/api/v1/projects/{project}/captures",

@@ -357,7 +357,7 @@ def test_cli_and_gui_reject_same_ambiguous_model_documents(tmp_path, capsys, pro
     assert not output.exists() and not list(tmp_path.glob(".protocol-lab-*"))
 
 
-def test_a0_cli_technical_limit_is_unknown_and_preserves_original_provenance(tmp_path):
+def test_cli_technical_limit_is_unknown_and_preserves_original_provenance(tmp_path):
     from protocol_lab.interpretation.schema import ProtocolModel
 
     model = dict(

@@ -1,4 +1,4 @@
-"""Additive A1 inference runs, candidates, evaluations and paginated artifact indexes."""
+"""Additive discovery inference runs, candidates, evaluations and paginated artifact indexes."""
 
 import sqlalchemy as sa
 from alembic import op

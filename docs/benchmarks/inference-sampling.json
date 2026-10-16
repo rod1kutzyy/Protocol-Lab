@@ -1,5 +1,5 @@
 {
-  "profile": "inference-a0-metadata-only",
+  "profile": "inference-metadata-only",
   "platform": "macOS-27.0.1-arm64-arm-64bit",
   "python": "3.12.15",
   "units": 100000,

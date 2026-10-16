@@ -137,7 +137,7 @@ class InterpretationVersion(Record):
     model_id: UUID
     schema_version: str
     content_sha256: Sha256
-    document_json: str  # Immutable serialized JSON, schema checked in stage 7.
+    document_json: str  # Immutable serialized JSON, validated against the interpretation schema.
     created_at: datetime
     parent_id: UUID | None = None
 

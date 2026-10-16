@@ -1,4 +1,4 @@
-"""A0 advertises schemas, not an implemented automatic analysis service."""
+"""Local inference capabilities, discovery jobs and frozen-rule evaluation."""
 
 import functools
 import shutil
@@ -60,11 +60,10 @@ class DetectorCapability(Record):
 
 
 class InferenceCapabilities(Record):
-    stage: Literal["A4"] = "A4"
     contract_version: str = CONTRACT_VERSION
     analysis_available: Literal[True] = True
     scope_verification_available: Literal[True] = True
-    budget_profile: str = "bounded_a4"
+    budget_profile: str = "bounded"
     detectors: tuple[DetectorCapability, ...]
     default_budget: SearchBudget = Field(default_factory=SearchBudget)
     default_search: SearchSpace = Field(default_factory=SearchSpace)

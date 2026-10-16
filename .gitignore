@@ -140,7 +140,7 @@ docker-compose.override.yml
 compose.override.yml
 .docker-data/
 
-# Do NOT ignore AGENTS.md, README.md, docs/, migrations/, models/, manifests,
+# Keep README.md, schemas, migrations/, models/, manifests,
 # test fixtures or committed dependency lockfiles.
 
 # Browser test artifacts

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from test_inference_a4 import parsed
+from test_inference_checksums import parsed
 from test_inference_engine import setup
 
 from protocol_lab.framing.engine import FramingSpec, StreamInput

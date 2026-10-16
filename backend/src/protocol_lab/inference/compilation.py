@@ -114,7 +114,7 @@ def model_draft(candidate):
             compilable=False,
             diagnostics=(
                 candidate.compiler_reason
-                or "A1 cannot compile this analytical rule independently.",
+                or "discovery cannot compile this analytical rule independently.",
             ),
         )
     framing, fields, checks = candidate.rule.framing, [], []

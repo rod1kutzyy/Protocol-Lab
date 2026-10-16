@@ -1,1 +1,1 @@
-"""Local protocol inference contracts. Candidate discovery is introduced after A0."""
+"""Local protocol inference, reproducible discovery and candidate evaluation."""

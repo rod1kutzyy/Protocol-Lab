@@ -1,4 +1,4 @@
-"""A0 metadata-only baseline; does not measure packet decoding or future detectors."""
+"""Metadata-only sampling baseline; excludes packet decoding and detector execution."""
 
 import argparse
 import hashlib
@@ -85,7 +85,7 @@ def main():
         raise RuntimeError("Traversal-order determinism failed")
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     report = {
-        "profile": "inference-a0-metadata-only",
+        "profile": "inference-metadata-only",
         "platform": platform.platform(),
         "python": platform.python_version(),
         "units": args.units,
