@@ -147,12 +147,21 @@ def validate_stream(
             capture_id=capture.id,
             session_id=stream.session_id,
             stream_id=stream.id,
+            direction=stream.direction,
             anchor=anchor,
             kind=kind,
             status="not_applicable",
             diagnostic="excluded_by_corpus_filters"
             if not stream.included
             else "empty_directed_stream",
+        )
+        return
+    if model.direction not in {"both", stream.direction}:
+        yield ValidationItem(
+            id=item_id(run_id, capture.id, anchor, "stream_diagnostic"),
+            capture_id=capture.id, session_id=stream.session_id, stream_id=stream.id,
+            direction=stream.direction, anchor=anchor, kind="stream_diagnostic",
+            status="not_applicable", diagnostic="outside_model_direction_scope",
         )
         return
     try:
@@ -172,6 +181,7 @@ def validate_stream(
             capture_id=capture.id,
             session_id=stream.session_id,
             stream_id=stream.id,
+            direction=stream.direction,
             anchor=anchor,
             kind="stream_diagnostic",
             status="unknown",
@@ -184,7 +194,7 @@ def validate_stream(
             raise WorkCancelled
         limit = piece.technical_limit
         try:
-            result = parse_message(model, parser, piece, source, cancelled)
+            result = parse_message(model, parser, piece, source, cancelled, stream.direction)
             fields, unknown, status, diagnostic = (
                 result.fields,
                 result.unknown_ranges,
@@ -206,6 +216,7 @@ def validate_stream(
             stream_id=stream.id,
             anchor=piece.anchor,
             framing_version=str(framed.id),
+            direction=stream.direction,
             kind=piece.kind,
             status=status,
             diagnostic=diagnostic,
@@ -220,9 +231,13 @@ class CoverageCounter:
         self.snapshot = snapshot
         self.counts, self.messages, self.bytes = Counter(), Counter(), Counter()
         self.unframed = self.undecoded = self.decoded = 0
+        self.relations = Counter()
 
     def add(self, item):
         self.counts[item.status] += 1
+        if item.kind == "corpus_check":
+            self.relations[item.status] += 1
+            return
         if item.kind == "message":
             self.messages[item.status] += 1
         length = item.anchor.byte_range.end - item.anchor.byte_range.start if item.anchor else 0
@@ -235,7 +250,9 @@ class CoverageCounter:
             )
             if item.kind == "stream_diagnostic" and item.status == "unknown":
                 self.undecoded += length
-        self.decoded += sum(f.length for f in item.fields if f.kind in {"int", "bytes"})
+        self.decoded += sum(
+            f.length for f in item.fields if f.kind in {"int", "bytes", "delimited_bytes"}
+        )
 
     def result(self):
         sources = self.snapshot.sources
@@ -243,6 +260,7 @@ class CoverageCounter:
         selected = sum(s.extent for c in sources for s in c.streams if s.included)
         return Coverage(
             counts={s: self.counts[s] for s in STATUSES},
+            corpus_check_counts={s: self.relations[s] for s in STATUSES},
             message_counts={s: self.messages[s] for s in STATUSES},
             byte_counts={s: self.bytes[s] for s in STATUSES},
             stream_bytes=stream_bytes,
@@ -291,6 +309,8 @@ def range_key(item):
         item.kind,
         str(item.session_id) if item.kind == "reconstruction_diagnostic" else "",
         item.direction or "",
+        item.check_name or "",
+        item.check_ordinal,
     )
 
 

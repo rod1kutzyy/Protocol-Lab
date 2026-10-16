@@ -14,6 +14,7 @@ from protocol_lab.interpretation.schema import canonical, content_hash
 from protocol_lab.services.resources import ResultBudget, ResultLimits
 from protocol_lab.tcp.reassembly import VERSION as TCP_VERSION
 from protocol_lab.tcp.reassembly import ReconstructionSettings, reconstruct
+from protocol_lab.validation.corpus import CorpusEvaluator, PacketTimeIndex
 from protocol_lab.validation.engine import (
     CoverageCounter,
     capture_diagnostics,
@@ -42,6 +43,8 @@ def apply_capture(
     capture_id=None,
     cancelled=lambda: False,
     limits=None,
+    action_events=(),
+    action_logs=(),
 ):
     settings = settings or IndexSettings()
     checksum = sha256_file(capture)
@@ -135,8 +138,16 @@ def apply_capture(
             framing_engine_version=FRAMING_VERSION,
             interpretation_engine_version=INTERPRETATION_VERSION,
             sources=(source_snapshot,),
+            action_events=action_events,
+            action_logs=action_logs,
         )
         counter = CoverageCounter(snapshot)
+        relations = CorpusEvaluator(model, snapshot.id, action_events, cancelled)
+        packet_times = {
+            packet.id: packet.timestamp_ns for packet in packets if packet.timestamp_ns is not None
+        }
+        active_times = PacketTimeIndex((), {})
+        active_source = None
         output.write('{"format":"protocol-lab-validation","format_version":1,"results":[')
         first = True
         budget = ResultBudget(limits or ResultLimits())
@@ -152,6 +163,7 @@ def apply_capture(
             budget.consume(line + "\n")
             output.write(line)
             counter.add(item)
+            relations.add(item, active_times.get(item.anchor), active_source)
 
         for item in capture_diagnostics(snapshot.id, source_snapshot):
             write(item)
@@ -160,15 +172,19 @@ def apply_capture(
         actual = {s.id: s for session in reconstruction.sessions for s in session.streams}
         for stream in streams:
             rebuilt = actual[stream.id]
+            active_times = PacketTimeIndex(rebuilt.spans, packet_times)
+            active_source = stream_input(rebuilt, rebuilt.spans, source)
             for item in validate_stream(
                 snapshot.id,
                 source_snapshot,
                 stream,
-                stream_input(rebuilt, rebuilt.spans, source),
+                active_source,
                 model,
                 cancelled,
             ):
                 write(item)
+        for item in relations.finish():
+            write(item)
         if sha256_file(capture) != checksum:
             raise ValueError("Capture changed while applying model; no output published")
         output.write(

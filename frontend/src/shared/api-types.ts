@@ -898,6 +898,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inference/checksum-registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checksum Registry */
+        get: operations["checksum_registry_api_v1_inference_checksum_registry_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inference/spec/check": {
         parameters: {
             query?: never;
@@ -1367,7 +1384,7 @@ export interface components {
              */
             rule_schema_version: "inference-rule-1";
             /** Rule */
-            rule: components["schemas"]["FramingCandidateRule"] | components["schemas"]["RegionRule"] | components["schemas"]["LengthRelationRule"] | components["schemas"]["DelimiterRule"] | components["schemas"]["GroupRule"] | components["schemas"]["CounterRule"] | components["schemas"]["ChecksumRule"] | components["schemas"]["TimestampRule"] | components["schemas"]["ProfileRule"] | components["schemas"]["EventRule"] | components["schemas"]["MappingRule"];
+            rule: components["schemas"]["FramingCandidateRule"] | components["schemas"]["RegionRule"] | components["schemas"]["LengthRelationRule"] | components["schemas"]["DelimiterRule"] | components["schemas"]["GroupRule"] | components["schemas"]["CounterRule"] | components["schemas"]["CopyRelationRule"] | components["schemas"]["ChecksumRule"] | components["schemas"]["TimestampRule"] | components["schemas"]["ProfileRule"] | components["schemas"]["EventRule"] | components["schemas"]["MappingRule"];
         };
         /** CandidateList */
         CandidateList: {
@@ -1495,13 +1512,29 @@ export interface components {
              * @enum {string}
              */
             algorithm: "xor8" | "sum8" | "sum16" | "internet_checksum" | "CRC-8/SMBUS" | "CRC-16/ARC" | "CRC-16/IBM-3740" | "CRC-16/IBM-SDLC" | "CRC-32/ISO-HDLC";
-            /** Covered Ranges */
+            /**
+             * Covered Ranges
+             * @default []
+             */
             covered_ranges: components["schemas"]["ByteRange"][];
             /**
              * Exclude Field
              * @default true
              */
             exclude_field: boolean;
+            /**
+             * Field Relative To
+             * @default message_start
+             * @enum {string}
+             */
+            field_relative_to: "message_start" | "message_end";
+            /**
+             * Coverage
+             * @default ranges
+             * @enum {string}
+             */
+            coverage: "message" | "before_field" | "ranges";
+            framing?: components["schemas"]["FramingSpec"] | null;
         };
         /** ClockUpdate */
         ClockUpdate: {
@@ -1532,6 +1565,26 @@ export interface components {
             items: components["schemas"]["Difference"][];
             /** Next Offset */
             next_offset: number | null;
+        };
+        /** CopyRelationRule */
+        CopyRelationRule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "copied_value";
+            /** Source Offset */
+            source_offset: number;
+            /** Target Offset */
+            target_offset: number;
+            /** Length */
+            length: number;
+            /**
+             * Source Direction
+             * @enum {string}
+             */
+            source_direction: "a_to_b" | "b_to_a";
+            framing: components["schemas"]["FramingSpec"];
         };
         /** CorpusInput */
         CorpusInput: {
@@ -1615,6 +1668,7 @@ export interface components {
              * @default true
              */
             wrap: boolean;
+            framing?: components["schemas"]["FramingSpec"] | null;
         };
         /** Coverage */
         Coverage: {
@@ -1664,6 +1718,10 @@ export interface components {
              * @default 0
              */
             excluded_unreconstructed_directions: number;
+            /** Corpus Check Counts */
+            corpus_check_counts?: {
+                [key: string]: number;
+            };
         };
         /** CreateProject */
         CreateProject: {
@@ -1760,7 +1818,7 @@ export interface components {
             reconstruction_version: string;
             /**
              * Engine Version
-             * @default interpretation-v2
+             * @default interpretation-v4
              */
             engine_version: string;
             /** Piece Count */
@@ -1785,7 +1843,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "int" | "bytes" | "array" | "switch";
+            kind: "int" | "bytes" | "delimited_bytes" | "array" | "switch";
             /** Value */
             value: string;
             anchor?: components["schemas"]["StreamRange"] | null;
@@ -1858,7 +1916,7 @@ export interface components {
              * @default rule_trial
              * @enum {string}
              */
-            searched_unit: "rule_trial" | "sample_message";
+            searched_unit: "rule_trial" | "sample_message" | "event_message_window" | "mapping_trial";
             /**
              * Unsearched Unit
              * @default residual_search_space
@@ -2098,6 +2156,28 @@ export interface components {
              */
             max_pieces: number;
         };
+        /**
+         * FrozenEventInput
+         * @description Action-log row with the clock correction frozen at discovery time.
+         */
+        FrozenEventInput: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Log Id
+             * Format: uuid
+             */
+            log_id: string;
+            /** Timestamp Ns */
+            timestamp_ns: string;
+            /** Label */
+            label: string;
+            /** Parameters Json */
+            parameters_json: string;
+        };
         /** GroupRule */
         GroupRule: {
             /**
@@ -2320,7 +2400,7 @@ export interface components {
              */
             rule_schema_version: "inference-rule-1";
             /** Rule */
-            rule: components["schemas"]["FramingCandidateRule"] | components["schemas"]["RegionRule"] | components["schemas"]["LengthRelationRule"] | components["schemas"]["DelimiterRule"] | components["schemas"]["GroupRule"] | components["schemas"]["CounterRule"] | components["schemas"]["ChecksumRule"] | components["schemas"]["TimestampRule"] | components["schemas"]["ProfileRule"] | components["schemas"]["EventRule"] | components["schemas"]["MappingRule"];
+            rule: components["schemas"]["FramingCandidateRule"] | components["schemas"]["RegionRule"] | components["schemas"]["LengthRelationRule"] | components["schemas"]["DelimiterRule"] | components["schemas"]["GroupRule"] | components["schemas"]["CounterRule"] | components["schemas"]["CopyRelationRule"] | components["schemas"]["ChecksumRule"] | components["schemas"]["TimestampRule"] | components["schemas"]["ProfileRule"] | components["schemas"]["EventRule"] | components["schemas"]["MappingRule"];
             /** Rule Sha256 */
             rule_sha256: string;
             scope: components["schemas"]["CandidateScope"];
@@ -2352,7 +2432,7 @@ export interface components {
              * Compiler Support
              * @enum {string}
              */
-            compiler_support: "interpretation-1" | "not_compilable";
+            compiler_support: "interpretation-1" | "interpretation-2" | "not_compilable";
             /** Compiler Reason */
             compiler_reason?: string | null;
         };
@@ -2360,10 +2440,10 @@ export interface components {
         InferenceCapabilities: {
             /**
              * Stage
-             * @default A1
+             * @default A4
              * @constant
              */
-            stage: "A1";
+            stage: "A4";
             /**
              * Contract Version
              * @default inference-contracts-1
@@ -2383,7 +2463,7 @@ export interface components {
             scope_verification_available: true;
             /**
              * Budget Profile
-             * @default bounded_a1
+             * @default bounded_a4
              */
             budget_profile: string;
             /** Detectors */
@@ -2554,6 +2634,11 @@ export interface components {
              */
             candidates: components["schemas"]["CandidateInput"][];
             /**
+             * Events
+             * @default []
+             */
+            events: components["schemas"]["FrozenEventInput"][];
+            /**
              * Sample Anchors
              * @default []
              */
@@ -2637,6 +2722,24 @@ export interface components {
              * @default 1000000000
              */
             event_after_ns: number;
+            /**
+             * Timestamp Units
+             * @default [
+             *       "s",
+             *       "ms",
+             *       "us",
+             *       "ns"
+             *     ]
+             */
+            timestamp_units: ("s" | "ms" | "us" | "ns")[];
+            /**
+             * Timestamp Epochs
+             * @default [
+             *       "unix",
+             *       "session_relative"
+             *     ]
+             */
+            timestamp_epochs: ("unix" | "session_relative")[];
             /**
              * Checksum Algorithms
              * @default [
@@ -3267,7 +3370,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "constant_region" | "copied_value" | "end_marker" | "field_boundary_candidate" | "fixed_width_region" | "session_stable_region" | "session_token_candidate" | "start_marker";
+            kind: "constant_region" | "end_marker" | "field_boundary_candidate" | "fixed_width_region" | "session_stable_region" | "session_token_candidate" | "start_marker";
             /**
              * Relative To
              * @default message_start
@@ -3286,6 +3389,7 @@ export interface components {
              * @enum {string}
              */
             relation_scope: "message_group" | "direction" | "session";
+            framing?: components["schemas"]["FramingSpec"] | null;
         };
         /** RunInput */
         RunInput: {
@@ -3299,6 +3403,11 @@ export interface components {
              * Format: uuid
              */
             interpretation_version_id: string;
+            /**
+             * Log Ids
+             * @default []
+             */
+            log_ids: string[];
         };
         /** RunList */
         RunList: {
@@ -3346,11 +3455,23 @@ export interface components {
             interpretation_engine_version: string;
             /**
              * Engine Version
-             * @default validation-v3
+             * @default validation-v4
              */
             engine_version: string;
             /** Sources */
             sources: components["schemas"]["CaptureSnapshot"][];
+            /**
+             * Action Events
+             * @default []
+             */
+            action_events: components["schemas"]["ActionEvent"][];
+            /**
+             * Action Logs
+             * @default []
+             */
+            action_logs: {
+                [key: string]: unknown;
+            }[];
         };
         /** RunSummary */
         RunSummary: {
@@ -4022,7 +4143,7 @@ export interface components {
              * Name
              * @enum {string}
              */
-            name: "max_array_items" | "max_message_bytes" | "max_decoded_fields";
+            name: "max_array_items" | "max_message_bytes" | "max_decoded_fields" | "max_delimited_field_bytes" | "max_checksum_bytes" | "max_corpus_units" | "max_corpus_bytes";
             /** Observed */
             observed: string;
             /** Maximum */
@@ -4063,6 +4184,7 @@ export interface components {
              * @default 0
              */
             drift_ppm: number;
+            framing?: components["schemas"]["FramingSpec"] | null;
         };
         /** UnknownRange */
         UnknownRange: {
@@ -4108,7 +4230,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "message" | "leftover" | "excluded" | "stream_diagnostic" | "capture_diagnostic" | "reconstruction_diagnostic";
+            kind: "message" | "leftover" | "excluded" | "stream_diagnostic" | "capture_diagnostic" | "reconstruction_diagnostic" | "corpus_check";
             /**
              * Status
              * @enum {string}
@@ -4127,6 +4249,18 @@ export interface components {
              */
             unknown_ranges: components["schemas"]["UnknownRange"][];
             technical_limit?: components["schemas"]["TechnicalLimit"] | null;
+            /** Check Name */
+            check_name?: string | null;
+            /**
+             * Check Ordinal
+             * @default 0
+             */
+            check_ordinal: number;
+            /**
+             * Related Anchors
+             * @default []
+             */
+            related_anchors: components["schemas"]["StreamRange"][];
         };
         /** ValidationResultList */
         ValidationResultList: {
@@ -4225,6 +4359,18 @@ export interface components {
             /** Values Sha256 */
             values_sha256: string;
             technical_limit?: components["schemas"]["TechnicalLimit"] | null;
+            /** Check Name */
+            check_name?: string | null;
+            /**
+             * Check Ordinal
+             * @default 0
+             */
+            check_ordinal: number;
+            /**
+             * Related Anchors
+             * @default []
+             */
+            related_anchors: components["schemas"]["StreamRange"][];
         };
         /** VerifyResult */
         VerifyResult: {
@@ -6298,6 +6444,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checksum_registry_api_v1_inference_checksum_registry_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

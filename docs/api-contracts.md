@@ -167,15 +167,31 @@ Upload превышение — 413, registry capacity — 429. Превышен
 Бюджет строки валидации общий для GUI worker и CLI apply; это ресурсная защита,
 не новое правило протокола. Полные source/settings/model versions прежних runs сохраняются.
 
-## Автоматический анализатор — A0
+## Автоматический анализатор — A4
 
 Без БД доступны `GET /inference/capabilities`, `GET /inference/schemas/{name}`
 и `POST /inference/spec/check` с `{document_json}`. Проверка возвращает valid/issues,
-нормализованный spec и `scope_verified=false`: UUID existence/ownership проверяются
-при будущей загрузке project snapshot. Capabilities явно сообщает A0 и отсутствие
-работающих детекторов. Запуск и публикация inference runs — следующая поставка.
+нормализованный spec и `scope_verified=false`; существование UUID и ownership
+проверяются при загрузке project snapshot. PostgreSQL routes запускают discovery,
+просмотр run/candidates/evidence, генерацию model draft и frozen-rule evaluation;
+долгие операции идут через отменяемые jobs и атомарную публикацию.
+
+Доступны семейства `framing`, `structure`, `groups`, `events`, `data_mapping`,
+`entropy`, `counters`, `tokens`, `timestamps` и `checksums`. Typed evaluation повторно
+исполняет frozen framing и фиксированное отношение на выбранном корпусе; правила
+с неизвестной/неподдержанной framing-зависимостью отклоняются до постановки job.
+Состояние конкретных возможностей возвращает `/inference/capabilities`.
+Реестр и DSL описаны в [inference-a4.md](inference-a4.md), ограничения A3 — в [inference-a3.md](inference-a3.md), [A2](inference-a2.md),
+[A1](inference-a1.md) и [A0](inference-a0.md).
+
+`GET /inference/checksum-registry` возвращает exact registry parameters и check
+vector. `RunInput.log_ids` выбирает замораживаемые журналы для validation.
+`ValidationItem.kind=corpus_check`, `check_name`, `check_ordinal` и `related_anchors`
+сохраняют relational результаты отдельно; `Coverage.corpus_check_counts` не
+увеличивает byte coverage повторно. Поддерживается export модели interpretation-2.
 
 Framing Piece, MessageResult/MessageSummary, ValidationItem/ValidationSummary
 дополнены необязательным `technical_limit` (name, observed, maximum,
 observed_is_lower_bound). Старые записи читаются с null, числовые значения — строки.
-SQL/bundle revisions не изменились. [Описание и схемы](inference-a0.md).
+SQL/bundle revisions не изменились. Interpretation-2 добавляет bounded
+`delimited_bytes`, сохраняя чтение interpretation-1; [описание и схемы](inference-a0.md).

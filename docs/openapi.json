@@ -3294,6 +3294,29 @@
         }
       }
     },
+    "/api/v1/inference/checksum-registry": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Checksum Registry",
+        "operationId": "checksum_registry_api_v1_inference_checksum_registry_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Checksum Registry Api V1 Inference Checksum Registry Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inference/spec/check": {
       "post": {
         "tags": [
@@ -4675,6 +4698,9 @@
                 "$ref": "#/components/schemas/CounterRule"
               },
               {
+                "$ref": "#/components/schemas/CopyRelationRule"
+              },
+              {
                 "$ref": "#/components/schemas/ChecksumRule"
               },
               {
@@ -4697,7 +4723,7 @@
                 "byte_profile": "#/components/schemas/ProfileRule",
                 "checksum_relation": "#/components/schemas/ChecksumRule",
                 "constant_region": "#/components/schemas/RegionRule",
-                "copied_value": "#/components/schemas/RegionRule",
+                "copied_value": "#/components/schemas/CopyRelationRule",
                 "counter": "#/components/schemas/CounterRule",
                 "end_marker": "#/components/schemas/RegionRule",
                 "entropy_region": "#/components/schemas/ProfileRule",
@@ -5077,13 +5103,42 @@
             },
             "type": "array",
             "maxItems": 16,
-            "minItems": 1,
-            "title": "Covered Ranges"
+            "title": "Covered Ranges",
+            "default": []
           },
           "exclude_field": {
             "type": "boolean",
             "title": "Exclude Field",
             "default": true
+          },
+          "field_relative_to": {
+            "type": "string",
+            "enum": [
+              "message_start",
+              "message_end"
+            ],
+            "title": "Field Relative To",
+            "default": "message_start"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "message",
+              "before_field",
+              "ranges"
+            ],
+            "title": "Coverage",
+            "default": "ranges"
+          },
+          "framing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FramingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5091,8 +5146,7 @@
         "required": [
           "kind",
           "field",
-          "algorithm",
-          "covered_ranges"
+          "algorithm"
         ],
         "title": "ChecksumRule"
       },
@@ -5170,6 +5224,55 @@
           "next_offset"
         ],
         "title": "Comparison"
+      },
+      "CopyRelationRule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "copied_value",
+            "title": "Kind"
+          },
+          "source_offset": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Source Offset"
+          },
+          "target_offset": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Target Offset"
+          },
+          "length": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Length"
+          },
+          "source_direction": {
+            "type": "string",
+            "enum": [
+              "a_to_b",
+              "b_to_a"
+            ],
+            "title": "Source Direction"
+          },
+          "framing": {
+            "$ref": "#/components/schemas/FramingSpec"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "source_offset",
+          "target_offset",
+          "length",
+          "source_direction",
+          "framing"
+        ],
+        "title": "CopyRelationRule"
       },
       "CorpusInput": {
         "properties": {
@@ -5418,6 +5521,16 @@
             "type": "boolean",
             "title": "Wrap",
             "default": true
+          },
+          "framing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FramingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5508,6 +5621,13 @@
             "type": "integer",
             "title": "Excluded Unreconstructed Directions",
             "default": 0
+          },
+          "corpus_check_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Corpus Check Counts"
           }
         },
         "additionalProperties": false,
@@ -5728,7 +5848,7 @@
           "engine_version": {
             "type": "string",
             "title": "Engine Version",
-            "default": "interpretation-v2"
+            "default": "interpretation-v4"
           },
           "piece_count": {
             "type": "integer",
@@ -5797,6 +5917,7 @@
             "enum": [
               "int",
               "bytes",
+              "delimited_bytes",
               "array",
               "switch"
             ],
@@ -5967,7 +6088,9 @@
             "type": "string",
             "enum": [
               "rule_trial",
-              "sample_message"
+              "sample_message",
+              "event_message_window",
+              "mapping_trial"
             ],
             "title": "Searched Unit",
             "default": "rule_trial"
@@ -6568,6 +6691,48 @@
         ],
         "title": "FramingSpec"
       },
+      "FrozenEventInput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "log_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Log Id"
+          },
+          "timestamp_ns": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^-?(0|[1-9][0-9]*)$",
+            "title": "Timestamp Ns"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "parameters_json": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Parameters Json"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "log_id",
+          "timestamp_ns",
+          "label",
+          "parameters_json"
+        ],
+        "title": "FrozenEventInput",
+        "description": "Action-log row with the clock correction frozen at discovery time."
+      },
       "GroupRule": {
         "properties": {
           "kind": {
@@ -7122,6 +7287,9 @@
                 "$ref": "#/components/schemas/CounterRule"
               },
               {
+                "$ref": "#/components/schemas/CopyRelationRule"
+              },
+              {
                 "$ref": "#/components/schemas/ChecksumRule"
               },
               {
@@ -7144,7 +7312,7 @@
                 "byte_profile": "#/components/schemas/ProfileRule",
                 "checksum_relation": "#/components/schemas/ChecksumRule",
                 "constant_region": "#/components/schemas/RegionRule",
-                "copied_value": "#/components/schemas/RegionRule",
+                "copied_value": "#/components/schemas/CopyRelationRule",
                 "counter": "#/components/schemas/CounterRule",
                 "end_marker": "#/components/schemas/RegionRule",
                 "entropy_region": "#/components/schemas/ProfileRule",
@@ -7234,6 +7402,7 @@
             "type": "string",
             "enum": [
               "interpretation-1",
+              "interpretation-2",
               "not_compilable"
             ],
             "title": "Compiler Support"
@@ -7273,9 +7442,9 @@
         "properties": {
           "stage": {
             "type": "string",
-            "const": "A1",
+            "const": "A4",
             "title": "Stage",
-            "default": "A1"
+            "default": "A4"
           },
           "contract_version": {
             "type": "string",
@@ -7297,7 +7466,7 @@
           "budget_profile": {
             "type": "string",
             "title": "Budget Profile",
-            "default": "bounded_a1"
+            "default": "bounded_a4"
           },
           "detectors": {
             "items": {
@@ -7754,6 +7923,15 @@
             "title": "Candidates",
             "default": []
           },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/FrozenEventInput"
+            },
+            "type": "array",
+            "maxItems": 100000,
+            "title": "Events",
+            "default": []
+          },
           "sample_anchors": {
             "items": {
               "$ref": "#/components/schemas/StreamRange"
@@ -7924,6 +8102,44 @@
             "minimum": 0.0,
             "title": "Event After Ns",
             "default": 1000000000
+          },
+          "timestamp_units": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "s",
+                "ms",
+                "us",
+                "ns"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Timestamp Units",
+            "default": [
+              "s",
+              "ms",
+              "us",
+              "ns"
+            ]
+          },
+          "timestamp_epochs": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "unix",
+                "session_relative"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Timestamp Epochs",
+            "default": [
+              "unix",
+              "session_relative"
+            ]
           },
           "checksum_algorithms": {
             "items": {
@@ -9434,7 +9650,6 @@
               "fixed_width_region",
               "session_stable_region",
               "session_token_candidate",
-              "copied_value",
               "field_boundary_candidate"
             ],
             "title": "Kind"
@@ -9482,6 +9697,16 @@
             ],
             "title": "Relation Scope",
             "default": "message_group"
+          },
+          "framing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FramingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -9504,6 +9729,16 @@
             "type": "string",
             "format": "uuid",
             "title": "Interpretation Version Id"
+          },
+          "log_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Log Ids",
+            "default": []
           }
         },
         "additionalProperties": false,
@@ -9595,7 +9830,7 @@
           "engine_version": {
             "type": "string",
             "title": "Engine Version",
-            "default": "validation-v3"
+            "default": "validation-v4"
           },
           "sources": {
             "items": {
@@ -9603,6 +9838,25 @@
             },
             "type": "array",
             "title": "Sources"
+          },
+          "action_events": {
+            "items": {
+              "$ref": "#/components/schemas/ActionEvent"
+            },
+            "type": "array",
+            "maxItems": 100000,
+            "title": "Action Events",
+            "default": []
+          },
+          "action_logs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 128,
+            "title": "Action Logs",
+            "default": []
           }
         },
         "additionalProperties": false,
@@ -10924,7 +11178,11 @@
             "enum": [
               "max_array_items",
               "max_message_bytes",
-              "max_decoded_fields"
+              "max_decoded_fields",
+              "max_delimited_field_bytes",
+              "max_checksum_bytes",
+              "max_corpus_units",
+              "max_corpus_bytes"
             ],
             "title": "Name"
           },
@@ -11006,6 +11264,16 @@
             "minimum": -1000000.0,
             "title": "Drift Ppm",
             "default": 0
+          },
+          "framing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FramingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -11157,7 +11425,8 @@
               "excluded",
               "stream_diagnostic",
               "capture_diagnostic",
-              "reconstruction_diagnostic"
+              "reconstruction_diagnostic",
+              "corpus_check"
             ],
             "title": "Kind"
           },
@@ -11201,6 +11470,32 @@
                 "type": "null"
               }
             ]
+          },
+          "check_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Name"
+          },
+          "check_ordinal": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Check Ordinal",
+            "default": 0
+          },
+          "related_anchors": {
+            "items": {
+              "$ref": "#/components/schemas/StreamRange"
+            },
+            "type": "array",
+            "maxItems": 16,
+            "title": "Related Anchors",
+            "default": []
           }
         },
         "additionalProperties": false,
@@ -11461,6 +11756,30 @@
                 "type": "null"
               }
             ]
+          },
+          "check_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Name"
+          },
+          "check_ordinal": {
+            "type": "integer",
+            "title": "Check Ordinal",
+            "default": 0
+          },
+          "related_anchors": {
+            "items": {
+              "$ref": "#/components/schemas/StreamRange"
+            },
+            "type": "array",
+            "title": "Related Anchors",
+            "default": []
           }
         },
         "additionalProperties": false,

@@ -89,7 +89,7 @@ def portability_worker(send, cancel, database_url, root, operation, project_id, 
                 pack(stage / "bundle", stage / "project.zip", cancel.is_set, progress)
                 summary["filename"] = "project.zip"
             elif operation == "report":
-                with (stage / "report.md").open("x") as output:
+                with (stage / "report.md").open("x", encoding="utf-8") as output:
                     render_report(stage / "bundle", output)
                 summary["filename"] = "report.md"
         if cancel.is_set():

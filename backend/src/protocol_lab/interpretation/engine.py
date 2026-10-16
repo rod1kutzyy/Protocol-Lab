@@ -19,14 +19,23 @@ from protocol_lab.capture.index import WorkCancelled
 from protocol_lab.domain.diagnostics import TechnicalLimit, technical_limit
 from protocol_lab.domain.models import ByteRange, Record, StreamRange
 from protocol_lab.framing.engine import CHUNK, Piece, StreamInput
-from protocol_lab.interpretation.schema import ArrayField, BytesField, IntField, SwitchField
+from protocol_lab.interpretation.checksums import REGISTRY, calculate, covered_bytes
+from protocol_lab.interpretation.corpus_schema import ChecksumCheck
+from protocol_lab.interpretation.schema import (
+    ArrayField,
+    BytesField,
+    DelimitedBytesField,
+    IntField,
+    Remaining,
+    SwitchField,
+)
 
-VERSION = "interpretation-v2"
+VERSION = "interpretation-v4"
 
 
 class DecodedField(Record):
     path: str
-    kind: Literal["int", "bytes", "array", "switch"]
+    kind: Literal["int", "bytes", "delimited_bytes", "array", "switch"]
     value: str  # Integer decimal strings preserve 64-bit values in browsers/JSON.
     anchor: StreamRange | None = None  # Empty fields have no nonempty source range.
     offset: int
@@ -59,7 +68,12 @@ def problem_status(problem):
     return (
         "unknown"
         if problem.limit is not None
-        or problem.code in {"unconfigured_variant", "field_has_unavailable_or_ambiguous_bytes"}
+        or problem.code
+        in {
+            "unconfigured_variant",
+            "field_has_unavailable_or_ambiguous_bytes",
+            "checksum_field_unavailable",
+        }
         else "failed"
     )
 
@@ -111,6 +125,29 @@ class UnknownVariant(Construct):
         raise Problem("unconfigured_variant")
 
 
+class Delimited(Construct):
+    """Read through one explicitly configured terminator under a hard byte cap."""
+
+    def __init__(self, field):
+        super().__init__()
+        self.field = field
+        self.terminator = bytes.fromhex(field.terminator_hex)
+
+    def _parse(self, stream, context, path):
+        value = bytearray()
+        while len(value) < self.field.max_length:
+            chunk = stream.read(1)
+            value.extend(chunk)
+            if value.endswith(self.terminator):
+                return bytes(
+                    value if self.field.include_terminator else value[: -len(self.terminator)]
+                )
+        raise Problem(
+            "max_delimited_length_exceeded",
+            technical_limit("max_delimited_field_bytes", len(value) + 1, self.field.max_length),
+        )
+
+
 class Item(Subconstruct):
     def _parse(self, stream, context, path):
         tracker = context._params.tracker
@@ -157,7 +194,7 @@ class Traced(Subconstruct):
                 if isinstance(field, IntField)
                 else (
                     value[:64].hex()
-                    if isinstance(field, BytesField)
+                    if isinstance(field, (BytesField, DelimitedBytesField))
                     else (
                         str(len(value))
                         if isinstance(field, ArrayField)
@@ -173,7 +210,8 @@ class Traced(Subconstruct):
                     anchor=source_anchor,
                     offset=absolute,
                     length=end - start,
-                    preview_truncated=isinstance(field, BytesField) and len(value) > 64,
+                    preview_truncated=isinstance(field, (BytesField, DelimitedBytesField))
+                    and len(value) > 64,
                 )
             )
             tracker["consumed"] = max(tracker["consumed"], end)
@@ -209,6 +247,11 @@ def compile_model(model):
 
                 def length(ctx, expr=field.length):
                     stream = ctx._io
+                    if isinstance(expr, Remaining):
+                        count = stream.end - stream.start - stream.tell() - expr.remaining_minus
+                        if count < 0:
+                            raise Problem("negative_remaining_length")
+                        return count
                     return (
                         stream.end - stream.start - stream.tell()
                         if expr == "remaining"
@@ -216,6 +259,8 @@ def compile_model(model):
                     )
 
                 subcon = Bytes(length)
+            elif isinstance(field, DelimitedBytesField):
+                subcon = Delimited(field)
             elif isinstance(field, ArrayField):
                 subcon = Array(
                     lambda ctx, expr=field.count: amount(
@@ -235,7 +280,8 @@ def compile_model(model):
     return structure(model.fields)
 
 
-def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=lambda: False):
+def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=lambda: False,
+                  direction=None):
     anchor, interval = piece.anchor, piece.anchor.byte_range
     fields, unknown = [], []
     tracker = dict(
@@ -250,7 +296,11 @@ def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=la
     length = interval.end - interval.start
     position, diagnostic = 0, "rules_executed"
     limit = piece.technical_limit
-    if piece.kind != "message":
+    if model.direction != "both" and direction is None:
+        status, diagnostic = "unknown", "model_direction_prerequisite_unavailable"
+    elif model.direction not in {"both", direction}:
+        status, diagnostic = "not_applicable", "outside_model_direction_scope"
+    elif piece.kind != "message":
         status, diagnostic = "not_applicable", "unframed_data"
     elif length > model.framing.max_message_bytes:
         status, diagnostic = "unknown", "max_message_bytes_exceeded"
@@ -259,7 +309,46 @@ def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=la
         stream = Input(source, interval.start, interval.end, cancelled)
         try:
             values = parser.parse_stream(stream, tracker=tracker)
+            checksum_bytes = 0
             for check in model.checks:
+                if isinstance(check, ChecksumCheck):
+                    field = next((f for f in fields if f.path == check.field), None)
+                    if field is None:
+                        raise Problem("checksum_field_unavailable")
+                    if field.length != REGISTRY[check.algorithm].width // 8:
+                        raise Problem(f"{check.field}:checksum_field_width_mismatch")
+                    checksum_bytes += length
+                    if checksum_bytes > model.max_checksum_bytes:
+                        raise Problem(
+                            "max_checksum_bytes_exceeded",
+                            technical_limit(
+                                "max_checksum_bytes", checksum_bytes, model.max_checksum_bytes
+                            ),
+                        )
+                    reader = Input(source, interval.start, interval.end, cancelled)
+                    raw = reader.read(length)
+                    start = field.offset - interval.start
+                    end = start + field.length
+                    try:
+                        covered = covered_bytes(
+                            raw,
+                            start,
+                            end,
+                            check.coverage,
+                            check.covered_ranges,
+                            check.exclude_field,
+                            check.coverage_start,
+                        )
+                    except ValueError:
+                        raise Problem("checksum_coverage_outside_message") from None
+                    expected = calculate(check.algorithm, covered, cancelled)
+                    actual = int.from_bytes(raw[start:end], check.byte_order)
+                    if actual != expected:
+                        raise Problem(
+                            f"{check.field}:checksum_check_failed:"
+                            f"{check.algorithm}:expected={expected}:observed={actual}"
+                        )
+                    continue
                 field = next(f for f in model.fields if f.name == check.field)
                 actual = (
                     len(values[check.field])
@@ -325,6 +414,8 @@ def parse_message(model, parser, piece: Piece, source: StreamInput, cancelled=la
                 )
             )
         index += 1
+    if model.corpus_checks:
+        diagnostic += ";corpus_checks_execute_in_corpus_validation"
     return MessageResult(
         piece_id=str(piece.id),
         anchor=anchor,

@@ -8,7 +8,15 @@ from protocol_lab.domain.models import Record
 
 
 class TechnicalLimit(Record):
-    name: Literal["max_array_items", "max_message_bytes", "max_decoded_fields"]
+    name: Literal[
+        "max_array_items",
+        "max_message_bytes",
+        "max_decoded_fields",
+        "max_delimited_field_bytes",
+        "max_checksum_bytes",
+        "max_corpus_units",
+        "max_corpus_bytes",
+    ]
     # Computed uint64 lengths can exceed JavaScript's exact integer range.
     observed: str = Field(pattern=r"^(0|[1-9][0-9]*)$", max_length=40)
     maximum: str = Field(pattern=r"^(0|[1-9][0-9]*)$", max_length=40)

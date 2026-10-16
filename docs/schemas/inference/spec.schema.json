@@ -760,6 +760,44 @@
       "title": "Event After Ns",
       "type": "integer"
     },
+    "timestamp_units": {
+      "default": [
+        "s",
+        "ms",
+        "us",
+        "ns"
+      ],
+      "items": {
+        "enum": [
+          "s",
+          "ms",
+          "us",
+          "ns"
+        ],
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Timestamp Units",
+      "type": "array"
+    },
+    "timestamp_epochs": {
+      "default": [
+        "unix",
+        "session_relative"
+      ],
+      "items": {
+        "enum": [
+          "unix",
+          "session_relative"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Timestamp Epochs",
+      "type": "array"
+    },
     "checksum_algorithms": {
       "default": [
         "xor8",

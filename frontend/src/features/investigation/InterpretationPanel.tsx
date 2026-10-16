@@ -20,7 +20,7 @@ type Result = components['schemas']['MessageResult']
 type Check = components['schemas']['ModelCheck']
 type FramingRun = components['schemas']['RunView']
 const statuses = { passed: 'Правила выполнены', failed: 'Проверка нарушена', unknown: 'Неизвестно', ambiguous: 'Неоднозначно', not_applicable: 'Не размечено' }
-const kinds = { int: 'Целое', bytes: 'Байты HEX', array: 'Массив: число элементов', switch: 'Вариант: значение селектора' }
+const kinds = { int: 'Целое', bytes: 'Байты HEX', delimited_bytes: 'Байты до разделителя', array: 'Массив: число элементов', switch: 'Вариант: значение селектора' }
 const reasons: Record<string, string> = { uninterpreted: 'Байты не описаны моделью', gap: 'Байты отсутствуют в записи', truncated: 'Усечённый пакет', ambiguous: 'Конфликтующие варианты байтов' }
 
 export function InterpretationPanel({ stream, framing, onNavigate }: { stream: Stream; framing: FramingRun; onNavigate: (anchor: components['schemas']['StreamRange']) => void }) {
@@ -81,6 +81,7 @@ export function InterpretationPanel({ stream, framing, onNavigate }: { stream: S
     onNavigate(anchor)
   }
   return <section className="stack interpretation-panel" aria-label="Модель протокола"><h3>Интерпретация — поля и правила</h3>
+    <p className="muted text-xs">Здесь выполняются разбор полей и локальные проверки, включая checksum/CRC. Межсообщенческие правила corpus_checks выполняются в разделе «Проверка корпуса».</p>
     <p className="muted text-xs">Значения получены исполнением модели. Имена полей задаёт инженер; смысл поля остаётся предположением. Все смещения относятся к исходному потоку, [start, end).</p>
     <div className="form-row"><label>Версия модели<select value={versionId ?? ''} disabled={check.isPending || save.isPending} onChange={e => { const v = versionOptions.find(v => v.id === e.target.value); setVersionId(v?.id ?? null); setText(v ? formatModel(v.document_json) : sampleModel(framing.spec)); check.reset() }}><option value="">Новая модель</option>{versionOptions.map(v => <option key={v.id} value={v.id}>{JSON.parse(v.document_json).name} · {v.id.slice(0, 8)}</option>)}</select></label><More query={versions} /></div>
     <div className="form-row"><Button size="sm" variant="outline" disabled={check.isPending || save.isPending} onClick={() => { setText(sampleModel(framing.spec)); check.reset() }}>Пример: исходные байты</Button><Button size="sm" variant="outline" disabled={framing.spec.rule.kind !== 'length' || check.isPending || save.isPending} onClick={() => { try { setText(sampleModel(framing.spec, 'length')); check.reset() } catch (e) { setLocalError(e as Error) } }}>Пример: поле длины</Button><Button size="sm" variant="outline" disabled={check.isPending || save.isPending} onClick={() => { setText(sampleModel(framing.spec, 'variants')); check.reset() }}>Пример: массив и варианты</Button><Button size="sm" variant="outline" disabled={check.isPending || save.isPending} onClick={() => { try { setText(replaceFraming(text, framing.spec)); check.reset(); setLocalError(null) } catch (e) { setLocalError(e as Error) } }}>Использовать выбранный фрейминг</Button></div>

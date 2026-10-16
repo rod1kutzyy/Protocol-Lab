@@ -6,7 +6,7 @@ import os
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import uuid4, uuid5
+from uuid import UUID, uuid4, uuid5
 
 from sqlalchemy import func, insert, select, text
 from sqlalchemy.orm import Session
@@ -17,6 +17,8 @@ from protocol_lab.framing.engine import identity as framing_identity
 from protocol_lab.interpretation.document import load_model
 from protocol_lab.interpretation.engine import VERSION as INTERPRETATION_VERSION
 from protocol_lab.storage.database import (
+    ActionLogRow,
+    ActionRow,
     CaptureRow,
     CorpusRow,
     InterpretationRow,
@@ -227,6 +229,42 @@ class ValidationStore:
             )
         return tuple(sources)
 
+    def freeze_logs(self, db, project_id, log_ids):
+        from protocol_lab.research.action_logs import ActionEvent
+        from protocol_lab.storage.research import log_record
+
+        if len(set(log_ids)) != len(log_ids):
+            raise ValueError("Duplicate validation action log")
+        logs, events = [], []
+        for log_id in sorted(log_ids, key=str):
+            row = db.get(ActionLogRow, log_id)
+            if row is None or row.project_id != project_id:
+                raise ValueError("Validation action log belongs to another project or is missing")
+            record = log_record(row)
+            path = self.projects.safe_path(project_id, record.relative_path)
+            if sha256_file(path) != record.sha256:
+                raise StorageError("Validation action log checksum mismatch")
+            logs.append(record.model_dump(mode="json"))
+            for metadata in db.scalars(
+                select(ActionRow.metadata_json)
+                .where(ActionRow.log_id == log_id)
+                .order_by(ActionRow.timestamp_ns, ActionRow.id)
+                .limit(100001)
+            ):
+                if len(events) >= 100000:
+                    raise ValueError("Validation action logs exceed 100000 events")
+                events.append(
+                    ActionEvent.model_validate(
+                        {
+                            **metadata,
+                            "timestamp_ns": str(
+                                int(metadata["timestamp_ns"]) + int(row.clock_offset_ns)
+                            ),
+                        }
+                    )
+                )
+        return tuple(logs), tuple(events)
+
     def freeze(self, project_id, body):
         self.projects.get(project_id)
         corpus = self.corpus(body.corpus_version_id)
@@ -240,6 +278,7 @@ class ValidationStore:
             db.begin(),
         ):
             sources = self.sources(db, project_id, corpus)
+            logs, events = self.freeze_logs(db, project_id, body.log_ids)
         return RunSnapshot(
             id=uuid4(),
             project_id=project_id,
@@ -253,6 +292,8 @@ class ValidationStore:
             framing_engine_version=FRAMING_VERSION,
             interpretation_engine_version=INTERPRETATION_VERSION,
             sources=sources,
+            action_logs=logs,
+            action_events=events,
         )
 
     def verify_inputs(self, snapshot):
@@ -269,6 +310,11 @@ class ValidationStore:
             db.begin(),
         ):
             current = self.sources(db, snapshot.project_id, snapshot.corpus)
+            logs, events = self.freeze_logs(
+                db, snapshot.project_id, [UUID(log["id"]) for log in snapshot.action_logs]
+            )
+        if logs != snapshot.action_logs or events != snapshot.action_events:
+            raise StorageError("Frozen validation action log or clock revision changed")
         if current != snapshot.sources:
             changed = [
                 str(old.id)
@@ -294,7 +340,7 @@ class ValidationStore:
 
     def publish(self, snapshot, artifact: Path, summary):
         self.verify_inputs(snapshot)
-        with artifact.open() as file:
+        with artifact.open(encoding="utf-8") as file:
             run = ValidationRun.model_validate_json(file.readline())
         if run.snapshot != snapshot:
             raise StorageError("Validation snapshot mismatch")
@@ -331,22 +377,49 @@ class ValidationStore:
             )
             db.flush()
             batch = []
-            with artifact.open() as file:
+            with artifact.open(encoding="utf-8") as file:
                 next(file)
                 for line in file:
                     item = ValidationItem.model_validate_json(line)
-                    if item.capture_id not in capture_ids or item.id != item_id(
-                        snapshot.id,
-                        item.capture_id,
-                        item.anchor,
-                        item.kind,
-                        item.stream_id,
-                        item.session_id,
-                        item.direction,
-                    ):
+                    expected_id = (
+                        uuid5(snapshot.id, f"corpus:{item.check_name}:{item.check_ordinal}")
+                        if item.kind == "corpus_check"
+                        else item_id(
+                            snapshot.id,
+                            item.capture_id,
+                            item.anchor,
+                            item.kind,
+                            item.stream_id,
+                            item.session_id,
+                            item.direction,
+                        )
+                    )
+                    if item.capture_id not in capture_ids or item.id != expected_id:
                         raise StorageError("Validation item source identity mismatch")
                     seen_captures.add(item.capture_id)
-                    if item.kind == "reconstruction_diagnostic":
+                    if item.kind == "corpus_check":
+                        model = load_model(snapshot.document_json)
+                        if item.check_name not in {check.name for check in model.corpus_checks}:
+                            raise StorageError("Unknown corpus check result")
+                        for evidence_anchor in (item.anchor, *item.related_anchors):
+                            if evidence_anchor is None:
+                                continue
+                            _owner, evidence_stream = streams.get(
+                                evidence_anchor.stream_id, (None, None)
+                            )
+                            if (
+                                evidence_stream is None
+                                or not evidence_stream.included
+                                or (
+                                    evidence_anchor.reconstruction_version
+                                    != evidence_stream.reconstruction_version
+                                    or evidence_anchor.byte_range.end > evidence_stream.extent
+                                )
+                            ):
+                                raise StorageError("Corpus check evidence outside frozen source")
+                        if item.fields or item.unknown_ranges:
+                            raise StorageError("Corpus checks cannot replace decoded message facts")
+                    elif item.kind == "reconstruction_diagnostic":
                         if item != expected_failures.get(item.id) or item.id in seen_failures:
                             raise StorageError("Validation reconstruction diagnosis mismatch")
                         seen_failures.add(item.id)
@@ -566,6 +639,8 @@ class ValidationStore:
             ValidationResultRow.kind,
             metadata["session_id"].astext.asc().nullsfirst(),
             metadata["direction"].astext.asc().nullsfirst(),
+            metadata["check_name"].astext.asc().nullsfirst(),
+            metadata["check_ordinal"].as_integer().asc().nullsfirst(),
         ).offset(offset)
         if limit is not None:
             query = query.limit(limit)

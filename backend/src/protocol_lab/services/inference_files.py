@@ -1,4 +1,4 @@
-"""File adapter for the same A1 engine. No PostgreSQL or network is required."""
+"""File adapter for the shared inference engine. No PostgreSQL/network is required."""
 
 import hashlib
 import json
@@ -55,6 +55,11 @@ def infer_files(paths, document, output, holdout_paths=(), candidate_document=No
                 IndexSettings.model_validate(frozen.import_settings) if frozen else settings
             )
             packets = list(index_capture(path, capture_id, capture_settings))
+            packet_times = {
+                packet.id: packet.timestamp_ns
+                for packet in packets
+                if packet.timestamp_ns is not None
+            }
             file = stack.enter_context(path.open("rb"))
 
             def payload(packet, file=file):
@@ -156,14 +161,19 @@ def infer_files(paths, document, output, holdout_paths=(), candidate_document=No
                             )
                     return tuple(records)
 
-                inputs.append(
-                    StreamData(
-                        capture,
-                        s,
-                        stream_input(actual_stream, actual_stream.spans, file),
-                        provenance,
-                    )
+                stream_data = StreamData(
+                    capture,
+                    s,
+                    stream_input(actual_stream, actual_stream.spans, file),
+                    provenance,
                 )
+                stream_data.packet_times = tuple(
+                    (span.byte_range.start, span.byte_range.end, packet_times[source.packet_id])
+                    for span in actual_stream.spans
+                    for source in span.sources
+                    if source.packet_id in packet_times
+                )
+                inputs.append(stream_data)
             reconstructions.append(reconstruction)
         if spec is None:
             if candidate is None:

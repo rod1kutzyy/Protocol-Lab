@@ -1,0 +1,73 @@
+{
+  "schema_version": "interpretation-2",
+  "name": "A4 reproducible CRC32 and counter",
+  "framing": {
+    "rule": {
+      "kind": "length",
+      "offset": 2,
+      "width": 2,
+      "endian": "little",
+      "adjustment": 0
+    }
+  },
+  "fields": [
+    {
+      "kind": "bytes",
+      "name": "magic",
+      "length": 2,
+      "constant_hex": "aabb"
+    },
+    {
+      "kind": "int",
+      "name": "length",
+      "width": 2,
+      "endian": "little",
+      "signed": false
+    },
+    {
+      "kind": "int",
+      "name": "counter",
+      "width": 1,
+      "endian": "big",
+      "signed": false
+    },
+    {
+      "kind": "bytes",
+      "name": "payload",
+      "length": {
+        "remaining_minus": 4
+      }
+    },
+    {
+      "kind": "int",
+      "name": "crc",
+      "width": 4,
+      "endian": "little",
+      "signed": false
+    }
+  ],
+  "checks": [
+    {
+      "kind": "length",
+      "field": "payload",
+      "expected": {
+        "field": "length",
+        "add": -9
+      }
+    },
+    {
+      "kind": "checksum",
+      "field": "crc",
+      "algorithm": "CRC-32/ISO-HDLC",
+      "byte_order": "little",
+      "coverage": "before_field"
+    }
+  ],
+  "corpus_checks": [
+    {
+      "kind": "counter",
+      "name": "sequence",
+      "field": "counter"
+    }
+  ]
+}

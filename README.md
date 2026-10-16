@@ -84,3 +84,9 @@ uv run --project backend --frozen protocol-lab apply --model tests/fixtures/cli/
 ```
 
 Этап 10: [проверки](docs/review-stage-10.md), [повторение](docs/manual-stage-10.md), [пределы и измерения](docs/reliability.md).
+
+Автоматический анализатор: [checksum, DSL и перенос A4](docs/inference-a4.md),
+[межсообщенческие связи A3](docs/inference-a3.md),
+[структура и действия A2](docs/inference-a2.md),
+[возможности A1](docs/inference-a1.md), [контракты A0](docs/inference-a0.md),
+[ТЗ](docs/automatic-analyzer-spec.md).

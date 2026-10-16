@@ -788,6 +788,89 @@ def test_stage5_log_mapping_clock_correlation_links_and_restart(storage):
     assert not list((settings.project_root / project / ".staging").iterdir())
 
 
+def test_a2_inference_freezes_action_events_and_clock_revision(storage):
+    from protocol_lab.storage.inference import InferenceStore
+
+    repository, settings, _ = storage
+    with TestClient(create_app(settings)) as client:
+        project = client.post("/api/v1/projects", json={"name": "A2 action freeze"}).json()["id"]
+        capture = finish(client, upload(client, project, "tcp/ordered.pcap"))["result"][
+            "capture_id"
+        ]
+        assert finish(client, reconstruct_job(client, capture))["status"] == "succeeded"
+        corpus = client.post(
+            f"/api/v1/projects/{project}/corpora",
+            json={"name": "A2 corpus", "spec": {"capture_ids": [capture]}},
+        ).json()
+        log_bytes = (FIXTURES / "actions/clock-offset.csv").read_bytes()
+        mapping = {
+            "timestamp_field": "when",
+            "label_field": "operation",
+            "parameters_field": "args",
+            "timestamp_format": "unix_s",
+        }
+        imported = client.post(
+            f"/api/v1/projects/{project}/action-logs",
+            files={"file": ("actions.csv", log_bytes)},
+            data={"format": "csv", "mapping_json": json.dumps(mapping)},
+        )
+        assert imported.status_code == 202, imported.text
+        log_id = finish(client, imported.json()["id"])["result"]["log_id"]
+        client.patch(
+            f"/api/v1/action-logs/{log_id}/clock",
+            json={"clock_offset_ns": "-1000000000", "expected_revision": 1},
+        ).raise_for_status()
+        log = client.get(f"/api/v1/projects/{project}/action-logs").json()["items"][0]
+        actions = client.get(f"/api/v1/projects/{project}/actions?log_id={log_id}").json()["items"]
+        spec = {
+            "schema_version": "inference-spec-1",
+            "corpus_version_id": corpus["id"],
+            "mode": "discover",
+            "detectors": [{"family": "framing"}, {"family": "events"}],
+            "split": {
+                "discovery_ids": [capture],
+                "holdout_unavailable_reason": "Single capture test",
+            },
+            "logs": [
+                {
+                    "log_id": log_id,
+                    "sha256": log["sha256"],
+                    "clock_revision": log["clock_revision"],
+                    "clock_offset_ns": log["clock_offset_ns"],
+                    "timestamp_field": log["mapping"]["timestamp_field"],
+                    "label_field": log["mapping"]["label_field"],
+                    "parameters_field": log["mapping"]["parameters_field"],
+                    "timestamp_format": log["mapping"]["timestamp_format"],
+                    "format": log["format"],
+                    "delimiter": log["mapping"]["delimiter"],
+                }
+            ],
+            "event_before_ns": 2000000000,
+            "event_after_ns": 2000000000,
+            "budget": {"max_header_bytes": 8, "max_rule_trials": 5000},
+            "search": {
+                "fixed_size_max": 64,
+                "adjustment_min": -8,
+                "adjustment_max": 8,
+                "marker_max_bytes": 4,
+                "max_marker_patterns": 8,
+            },
+        }
+        started = client.post(
+            f"/api/v1/projects/{project}/inference-runs",
+            json={"document_json": json.dumps(spec)},
+        )
+        assert started.status_code == 202, started.text
+        job = finish(client, started.json()["id"])
+        assert job["status"] == "succeeded", job
+        run = InferenceStore(repository).get(UUID(job["result"]["run_id"]))
+        frozen = run.snapshot.events
+        assert {event.timestamp_ns for event in frozen} == {
+            str(int(action["timestamp_ns"]) - 1000000000) for action in actions
+        }
+        assert run.snapshot.spec.logs[0].clock_revision == 2
+
+
 def test_stage5_upgrade_backfills_times_without_rewriting_evidence(storage):
     repository, settings, config = storage
     with TestClient(create_app(settings)) as client:

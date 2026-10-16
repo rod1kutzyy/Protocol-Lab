@@ -48,7 +48,7 @@
               "byte_profile": "#/$defs/ProfileRule",
               "checksum_relation": "#/$defs/ChecksumRule",
               "constant_region": "#/$defs/RegionRule",
-              "copied_value": "#/$defs/RegionRule",
+              "copied_value": "#/$defs/CopyRelationRule",
               "counter": "#/$defs/CounterRule",
               "end_marker": "#/$defs/RegionRule",
               "entropy_region": "#/$defs/ProfileRule",
@@ -90,6 +90,9 @@
             },
             {
               "$ref": "#/$defs/CounterRule"
+            },
+            {
+              "$ref": "#/$defs/CopyRelationRule"
             },
             {
               "$ref": "#/$defs/ChecksumRule"
@@ -268,11 +271,11 @@
           "type": "string"
         },
         "covered_ranges": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/ByteRange"
           },
           "maxItems": 16,
-          "minItems": 1,
           "title": "Covered Ranges",
           "type": "array"
         },
@@ -280,15 +283,93 @@
           "default": true,
           "title": "Exclude Field",
           "type": "boolean"
+        },
+        "field_relative_to": {
+          "default": "message_start",
+          "enum": [
+            "message_start",
+            "message_end"
+          ],
+          "title": "Field Relative To",
+          "type": "string"
+        },
+        "coverage": {
+          "default": "ranges",
+          "enum": [
+            "message",
+            "before_field",
+            "ranges"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
         "kind",
         "field",
-        "algorithm",
-        "covered_ranges"
+        "algorithm"
       ],
       "title": "ChecksumRule",
+      "type": "object"
+    },
+    "CopyRelationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "copied_value",
+          "title": "Kind",
+          "type": "string"
+        },
+        "source_offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Source Offset",
+          "type": "integer"
+        },
+        "target_offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Target Offset",
+          "type": "integer"
+        },
+        "length": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Length",
+          "type": "integer"
+        },
+        "source_direction": {
+          "enum": [
+            "a_to_b",
+            "b_to_a"
+          ],
+          "title": "Source Direction",
+          "type": "string"
+        },
+        "framing": {
+          "$ref": "#/$defs/FramingSpec"
+        }
+      },
+      "required": [
+        "kind",
+        "source_offset",
+        "target_offset",
+        "length",
+        "source_direction",
+        "framing"
+      ],
+      "title": "CopyRelationRule",
       "type": "object"
     },
     "CorpusSpec": {
@@ -419,6 +500,17 @@
           "default": true,
           "title": "Wrap",
           "type": "boolean"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -777,6 +869,48 @@
       "title": "FramingSpec",
       "type": "object"
     },
+    "FrozenEventInput": {
+      "additionalProperties": false,
+      "description": "Action-log row with the clock correction frozen at discovery time.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "log_id": {
+          "format": "uuid",
+          "title": "Log Id",
+          "type": "string"
+        },
+        "timestamp_ns": {
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Timestamp Ns",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "parameters_json": {
+          "maxLength": 10000,
+          "title": "Parameters Json",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "log_id",
+        "timestamp_ns",
+        "label",
+        "parameters_json"
+      ],
+      "title": "FrozenEventInput",
+      "type": "object"
+    },
     "GroupRule": {
       "additionalProperties": false,
       "properties": {
@@ -962,6 +1096,44 @@
           "minimum": 0,
           "title": "Event After Ns",
           "type": "integer"
+        },
+        "timestamp_units": {
+          "default": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ],
+          "items": {
+            "enum": [
+              "s",
+              "ms",
+              "us",
+              "ns"
+            ],
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Timestamp Units",
+          "type": "array"
+        },
+        "timestamp_epochs": {
+          "default": [
+            "unix",
+            "session_relative"
+          ],
+          "items": {
+            "enum": [
+              "unix",
+              "session_relative"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Timestamp Epochs",
+          "type": "array"
         },
         "checksum_algorithms": {
           "default": [
@@ -1557,7 +1729,6 @@
             "fixed_width_region",
             "session_stable_region",
             "session_token_candidate",
-            "copied_value",
             "field_boundary_candidate"
           ],
           "title": "Kind",
@@ -1607,6 +1778,17 @@
           ],
           "title": "Relation Scope",
           "type": "string"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2111,6 +2293,17 @@
           "minimum": -1000000,
           "title": "Drift Ppm",
           "type": "integer"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2179,6 +2372,15 @@
       },
       "maxItems": 10000,
       "title": "Candidates",
+      "type": "array"
+    },
+    "events": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FrozenEventInput"
+      },
+      "maxItems": 100000,
+      "title": "Events",
       "type": "array"
     },
     "sample_anchors": {

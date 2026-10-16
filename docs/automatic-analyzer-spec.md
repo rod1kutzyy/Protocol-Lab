@@ -1,8 +1,9 @@
 # Техническое задание: автоматический анализатор Protocol Lab
 
 Версия ТЗ: 1.0. Дата: 15 октября 2026 года.
-Статус: A0 реализован; см. [контракты и описание этапа](inference-a0.md);
-автоматические детекторы A1–A4 ещё не реализованы.
+Статус: A0–A4 реализованы в коде с зафиксированными ограничениями; см. [контракты A0](inference-a0.md),
+[возможности и ограничения A1](inference-a1.md), [возможности A2](inference-a2.md) и
+[возможности A3](inference-a3.md) и [реализацию/приёмочные ворота A4](inference-a4.md).
 Рабочее имя подсистемы: `inference` — поиск и проверка кандидатов в структуру протокола.
 
 ## 1. Назначение и границы
@@ -760,9 +761,9 @@ PostgreSQL-схемы по существующему runner. Проверки �
 | --- | --- | --- |
 | A0 — контракты и корректность | Разделение limits/contradictions, schemas, snapshots, sampling/split, budgets, fixtures и API design | Технический лимит не отвергает протокол; legacy models/runs читаются |
 | A1 — первые предложения | Fixed/length/markers, common regions, basic entropy, run/evidence persistence и UI | Автоматический переносимый кандидат в границы, source navigation и holdout |
-| A2 — структура и действия | Delimiters, groups/opcode, event windows и string/numeric Data Mapping | Различимые группы и параметры с контрпримерами; schema extension для delimiter |
-| A3 — межсообщенческие связи | Counters, session/copy relations, timestamps, typed corpus evaluator | Проверки работают через GUI/CLI, неизвестные предпосылки не скрываются |
-| A4 — checksums и полный перенос | Registry CRC/checksum, interpretation-2 завершён, export adapters, reports, full E2E и workload | Все семейства раздела 5, новые и legacy projects, дополнительная запись и измерения |
+| A2 — структура и действия | Delimiters, groups/opcode, event windows и string/numeric Data Mapping | Реализовано с ограничениями и тестами; см. [A2](inference-a2.md) |
+| A3 — межсообщенческие связи | Counters, session/copy relations, timestamps, typed corpus evaluator | Реализовано с ограничениями и тестами; см. [A3](inference-a3.md) |
+| A4 — checksums и полный перенос | Registry CRC/checksum, interpretation-2 завершён, export adapters, reports, full E2E и workload | Все семейства раздела 5, новые и legacy projects, дополнительная запись и измерения; состояние проверок — [A4](inference-a4.md) |
 
 Ни одна поставка не ограничивается отдельным offline-скриптом без интеграции:
 нужны core, API, UI, persistence, проверки и документация соответствующего объёма.

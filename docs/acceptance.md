@@ -171,3 +171,42 @@ deduplication с сохранением occurrences и независимый ex
 Исторические модели/результаты читаются, DB migration не требуется.
 Это фундамент A0, автоматический поиск и persistence новых runs относятся к A1.
 [Контракты, ограничения и проверки A0](inference-a0.md).
+
+## Автоматический анализатор: A1
+
+Реализованы bounded предложения fixed/length/marker framing, условные постоянные
+области и профиль Shannon entropy; discovery не читает holdout. Кандидаты проверяются
+общим framing engine, сохраняют unknown/ambiguous evidence и source packet ranges.
+Runs и evidence публикуются в PostgreSQL, отображаются в UI и доступны offline CLI.
+Генерация черновика модели поддерживает framing-кандидаты; A2 добавляет отдельные
+структурные и исследовательские детекторы.
+
+Во время ревью A1 исправлен учёт поиска: дубликат правила больше не расходует
+`max_rule_trials`, а общий лимит не превышается при поиске в обоих направлениях.
+Описание scope и ограничений: [inference-a1.md](inference-a1.md).
+
+## Автоматический анализатор: A2
+
+Добавлены кандидаты разделителей и повторяющихся групп на frozen A1 framing,
+временные окна по packet timestamps и frozen action-log clock revision, поиск явно
+выбранных строковых/числовых представлений по известным discovery bytes, и bounded
+`delimited_bytes` в interpretation-2. Неизвестные и неоднозначные события сохраняются;
+одиночные значения, короткие совпадения, группы и близость во времени не получают
+семантической трактовки. Автотесты A2: `test_inference_engine.py` и
+`test_interpretation.py`; ограничения: [inference-a2.md](inference-a2.md).
+
+## Автоматический анализатор: A3
+
+Добавлены ограниченные отношения счётчиков, стабильные области сессий, точные
+межнаправленные копирования и timestamp/relative-clock кандидаты. Правила A3
+содержат frozen framing и исполняются typed evaluator на holdout или целевом
+корпусе без подбора параметров. Неизвестные диапазоны и отсутствующие packet times
+остаются `unknown`; ограничения: [inference-a3.md](inference-a3.md).
+
+## Автоматический анализатор: A4
+
+Реализованы registry checksum/CRC, screening и fixed-rule evaluation, executable
+checksum/counter/timestamp drafts и interpretation-2 corpus checks. Typed outcomes
+сохраняются отдельно от decoded facts и не удваивают byte coverage. Перенос и
+отчёты используют существующий bundle 0007; legacy 0006 остаётся поддержанным.
+Проверки и остающиеся требования к стенду: [inference-a4.md](inference-a4.md).

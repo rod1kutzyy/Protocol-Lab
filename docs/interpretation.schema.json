@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:protocol-lab:interpretation-1",
+  "$id": "urn:protocol-lab:interpretation-2",
   "$defs": {
     "ArrayField": {
       "additionalProperties": false,
@@ -34,6 +34,7 @@
               "mapping": {
                 "array": "#/$defs/ArrayField",
                 "bytes": "#/$defs/BytesField",
+                "delimited_bytes": "#/$defs/DelimitedBytesField",
                 "int": "#/$defs/IntField",
                 "switch": "#/$defs/SwitchField"
               },
@@ -45,6 +46,9 @@
               },
               {
                 "$ref": "#/$defs/BytesField"
+              },
+              {
+                "$ref": "#/$defs/DelimitedBytesField"
               },
               {
                 "$ref": "#/$defs/ArrayField"
@@ -114,6 +118,9 @@
               "$ref": "#/$defs/Linear"
             },
             {
+              "$ref": "#/$defs/Remaining"
+            },
+            {
               "const": "remaining",
               "type": "string"
             }
@@ -141,6 +148,282 @@
         "length"
       ],
       "title": "BytesField",
+      "type": "object"
+    },
+    "ChecksumCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "checksum",
+          "title": "Kind",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Field",
+          "type": "string"
+        },
+        "algorithm": {
+          "enum": [
+            "xor8",
+            "sum8",
+            "sum16",
+            "internet_checksum",
+            "CRC-8/SMBUS",
+            "CRC-16/ARC",
+            "CRC-16/IBM-3740",
+            "CRC-16/IBM-SDLC",
+            "CRC-32/ISO-HDLC"
+          ],
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "byte_order": {
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Byte Order",
+          "type": "string"
+        },
+        "coverage": {
+          "default": "message",
+          "enum": [
+            "message",
+            "before_field",
+            "ranges"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "covered_ranges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ByteRange"
+          },
+          "maxItems": 16,
+          "title": "Covered Ranges",
+          "type": "array"
+        },
+        "exclude_field": {
+          "default": true,
+          "title": "Exclude Field",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "field",
+        "algorithm",
+        "byte_order"
+      ],
+      "title": "ChecksumCheck",
+      "type": "object"
+    },
+    "CopiedValueCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "copied_value",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "source_field": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Source Field",
+          "type": "string"
+        },
+        "target_field": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Target Field",
+          "type": "string"
+        },
+        "source_direction": {
+          "enum": [
+            "a_to_b",
+            "b_to_a"
+          ],
+          "title": "Source Direction",
+          "type": "string"
+        },
+        "order": {
+          "const": "packet_time",
+          "default": "packet_time",
+          "title": "Order",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "source_field",
+        "target_field",
+        "source_direction"
+      ],
+      "title": "CopiedValueCheck",
+      "type": "object"
+    },
+    "CounterCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "counter",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Field",
+          "type": "string"
+        },
+        "scope": {
+          "const": "directed_stream",
+          "default": "directed_stream",
+          "title": "Scope",
+          "type": "string"
+        },
+        "step": {
+          "default": "fixed",
+          "enum": [
+            "fixed",
+            "message_length",
+            "payload_length"
+          ],
+          "title": "Step",
+          "type": "string"
+        },
+        "increment": {
+          "default": 1,
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Increment",
+          "type": "integer"
+        },
+        "payload_field": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload Field"
+        },
+        "wrap": {
+          "default": true,
+          "title": "Wrap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "field"
+      ],
+      "title": "CounterCheck",
+      "type": "object"
+    },
+    "DelimitedBytesField": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "delimited_bytes",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "terminator_hex": {
+          "maxLength": 128,
+          "minLength": 2,
+          "pattern": "^(?:[a-fA-F0-9]{2})+$",
+          "title": "Terminator Hex",
+          "type": "string"
+        },
+        "include_terminator": {
+          "default": false,
+          "title": "Include Terminator",
+          "type": "boolean"
+        },
+        "max_length": {
+          "maximum": 16777216,
+          "minimum": 1,
+          "title": "Max Length",
+          "type": "integer"
+        },
+        "missing_terminator": {
+          "const": "failed",
+          "default": "failed",
+          "title": "Missing Terminator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "terminator_hex",
+        "max_length"
+      ],
+      "title": "DelimitedBytesField",
+      "type": "object"
+    },
+    "EventAssociationCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "event_association",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "before_ns": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Before Ns",
+          "type": "integer"
+        },
+        "after_ns": {
+          "default": 1000000000,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "After Ns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "title": "EventAssociationCheck",
       "type": "object"
     },
     "FixedRule": {
@@ -484,6 +767,121 @@
       "title": "MarkerRule",
       "type": "object"
     },
+    "ParameterMappingCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "parameter_mapping",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Field",
+          "type": "string"
+        },
+        "parameter_path": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Parameter Path",
+          "type": "array"
+        },
+        "encoding": {
+          "enum": [
+            "ascii",
+            "utf-8",
+            "utf-16le",
+            "utf-16be",
+            "decimal",
+            "integer"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "base64": {
+          "default": "none",
+          "enum": [
+            "none",
+            "standard",
+            "urlsafe"
+          ],
+          "title": "Base64",
+          "type": "string"
+        },
+        "padding": {
+          "default": true,
+          "title": "Padding",
+          "type": "boolean"
+        },
+        "bom": {
+          "default": false,
+          "title": "Bom",
+          "type": "boolean"
+        },
+        "width": {
+          "default": 4,
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "title": "Width",
+          "type": "integer"
+        },
+        "endian": {
+          "default": "little",
+          "enum": [
+            "big",
+            "little"
+          ],
+          "title": "Endian",
+          "type": "string"
+        },
+        "signed": {
+          "default": false,
+          "title": "Signed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "field",
+        "parameter_path",
+        "encoding"
+      ],
+      "title": "ParameterMappingCheck",
+      "type": "object"
+    },
+    "Remaining": {
+      "additionalProperties": false,
+      "properties": {
+        "remaining_minus": {
+          "maximum": 16777216,
+          "minimum": 0,
+          "title": "Remaining Minus",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "remaining_minus"
+      ],
+      "title": "Remaining",
+      "type": "object"
+    },
     "SwitchField": {
       "additionalProperties": false,
       "properties": {
@@ -509,6 +907,7 @@
                 "mapping": {
                   "array": "#/$defs/ArrayField",
                   "bytes": "#/$defs/BytesField",
+                  "delimited_bytes": "#/$defs/DelimitedBytesField",
                   "int": "#/$defs/IntField",
                   "switch": "#/$defs/SwitchField"
                 },
@@ -520,6 +919,9 @@
                 },
                 {
                   "$ref": "#/$defs/BytesField"
+                },
+                {
+                  "$ref": "#/$defs/DelimitedBytesField"
                 },
                 {
                   "$ref": "#/$defs/ArrayField"
@@ -545,12 +947,92 @@
       ],
       "title": "SwitchField",
       "type": "object"
+    },
+    "TimestampCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "timestamp",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[0-9]{1,4}\\]|\\.[A-Za-z][A-Za-z0-9_]*)*$",
+          "title": "Field",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "epoch": {
+          "enum": [
+            "unix",
+            "session_relative"
+          ],
+          "title": "Epoch",
+          "type": "string"
+        },
+        "clock_offset_ns": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Clock Offset Ns",
+          "type": "string"
+        },
+        "reference_ns": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?(0|[1-9][0-9]*)$",
+          "title": "Reference Ns",
+          "type": "string"
+        },
+        "tolerance_ns": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tolerance Ns",
+          "type": "integer"
+        },
+        "drift_ppm": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": -1000000,
+          "title": "Drift Ppm",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "field",
+        "unit",
+        "epoch"
+      ],
+      "title": "TimestampCheck",
+      "type": "object"
     }
   },
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "interpretation-1",
+      "enum": [
+        "interpretation-1",
+        "interpretation-2"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
@@ -569,6 +1051,7 @@
           "mapping": {
             "array": "#/$defs/ArrayField",
             "bytes": "#/$defs/BytesField",
+            "delimited_bytes": "#/$defs/DelimitedBytesField",
             "int": "#/$defs/IntField",
             "switch": "#/$defs/SwitchField"
           },
@@ -580,6 +1063,9 @@
           },
           {
             "$ref": "#/$defs/BytesField"
+          },
+          {
+            "$ref": "#/$defs/DelimitedBytesField"
           },
           {
             "$ref": "#/$defs/ArrayField"
@@ -597,11 +1083,81 @@
     "checks": {
       "default": [],
       "items": {
-        "$ref": "#/$defs/LengthCheck"
+        "discriminator": {
+          "mapping": {
+            "checksum": "#/$defs/ChecksumCheck",
+            "length": "#/$defs/LengthCheck"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/LengthCheck"
+          },
+          {
+            "$ref": "#/$defs/ChecksumCheck"
+          }
+        ]
       },
       "maxItems": 128,
       "title": "Checks",
       "type": "array"
+    },
+    "corpus_checks": {
+      "default": [],
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "copied_value": "#/$defs/CopiedValueCheck",
+            "counter": "#/$defs/CounterCheck",
+            "event_association": "#/$defs/EventAssociationCheck",
+            "parameter_mapping": "#/$defs/ParameterMappingCheck",
+            "timestamp": "#/$defs/TimestampCheck"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/CounterCheck"
+          },
+          {
+            "$ref": "#/$defs/CopiedValueCheck"
+          },
+          {
+            "$ref": "#/$defs/TimestampCheck"
+          },
+          {
+            "$ref": "#/$defs/EventAssociationCheck"
+          },
+          {
+            "$ref": "#/$defs/ParameterMappingCheck"
+          }
+        ]
+      },
+      "maxItems": 128,
+      "title": "Corpus Checks",
+      "type": "array"
+    },
+    "max_corpus_units": {
+      "default": 100000,
+      "maximum": 1000000,
+      "minimum": 1,
+      "title": "Max Corpus Units",
+      "type": "integer"
+    },
+    "max_corpus_bytes": {
+      "default": 16777216,
+      "maximum": 268435456,
+      "minimum": 1,
+      "title": "Max Corpus Bytes",
+      "type": "integer"
+    },
+    "max_checksum_bytes": {
+      "default": 16777216,
+      "maximum": 16777216,
+      "minimum": 1,
+      "title": "Max Checksum Bytes",
+      "type": "integer"
     },
     "max_array_items": {
       "default": 1024,

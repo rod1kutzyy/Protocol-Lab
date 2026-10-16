@@ -142,11 +142,22 @@ WorkspaceScreen сохраняет mounted формы и прокрутку ме
 WorkspaceState удерживает draft state по stream/framing/source внутри открытого
 проекта. URL hash задаёт раздел, Zustand хранит selection, TanStack Query —
 серверные данные. Изменение UI не меняет REST, DB schema, portable format или engine.
-## Автоматический анализатор: фундамент A0
+## Автоматический анализатор: A0–A4
 
 `inference/models.py` содержит закрытые versioned контракты; `document.py` — bounded
 strict JSON loader, `sampling.py` — deterministic discovery/holdout selection
-по frozen streams. `api/inference.py` публикует схемы и spec check без DB.
-Детекторы, process jobs и новые storage tables пока не добавлены; capabilities
-сообщает A0 и analysis_available=false. Существующие GUI/CLI framer/parser получают
-раздельные диагностики limits и contradictions. [Подробности](inference-a0.md).
+по frozen streams. A1 добавляет bounded fixed/length/marker предложения, поиск
+условных постоянных областей и профиль энтропии. A2 добавляет разделители, повторные
+группы ключей, оконную корреляцию с зафиксированными журналами и точный поиск
+явных представлений параметров; A3 добавляет typed counter, session/copy и timestamp
+relations, исполняемые на целевом корпусе по frozen framing.
+PostgreSQL хранит immutable snapshots, runs, candidates и evidence; local jobs
+выполняются общим engine. Capabilities отражает доступность реализованных детекторов.
+[A4](inference-a4.md), [A3](inference-a3.md), [A2](inference-a2.md), [A1](inference-a1.md).
+
+A4 registry находится в `interpretation/checksums.py`, используется discovery,
+fixed candidate evaluator и локальными DSL checks. `interpretation/corpus_schema.py`
+описывает закрытый relational DSL; `validation/corpus.py` исполняется после
+локального парсинга обоими адаптерами. Количество relational результатов хранится
+отдельно от byte partition. Portable metadata revision остаётся 0007: все новые
+контракты хранятся в JSON, добавление SQL columns не требуется.

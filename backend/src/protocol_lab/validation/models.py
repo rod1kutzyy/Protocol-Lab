@@ -11,10 +11,11 @@ from protocol_lab.domain.diagnostics import TechnicalLimit
 from protocol_lab.domain.models import Record, StreamRange
 from protocol_lab.framing.engine import FramingSpec
 from protocol_lab.interpretation.engine import DecodedField, UnknownRange
+from protocol_lab.research.action_logs import ActionEvent
 
 Status = Literal["passed", "failed", "unknown", "ambiguous", "not_applicable"]
 STATUSES = ("passed", "failed", "unknown", "ambiguous", "not_applicable")
-VERSION = "validation-v3"
+VERSION = "validation-v4"
 
 
 class CorpusSpec(Record):
@@ -96,6 +97,7 @@ class CaptureSnapshot(Record):
 class RunInput(Record):
     corpus_version_id: UUID
     interpretation_version_id: UUID
+    log_ids: tuple[UUID, ...] = Field(default=(), max_length=128)
 
 
 class RunSnapshot(Record):
@@ -112,6 +114,8 @@ class RunSnapshot(Record):
     interpretation_engine_version: str
     engine_version: str = VERSION
     sources: tuple[CaptureSnapshot, ...]
+    action_events: tuple[ActionEvent, ...] = Field(default=(), max_length=100000)
+    action_logs: tuple[dict, ...] = Field(default=(), max_length=128)
 
 
 class ValidationItem(Record):
@@ -129,12 +133,16 @@ class ValidationItem(Record):
         "stream_diagnostic",
         "capture_diagnostic",
         "reconstruction_diagnostic",
+        "corpus_check",
     ]
     status: Status
     diagnostic: str
     fields: tuple[DecodedField, ...] = ()
     unknown_ranges: tuple[UnknownRange, ...] = ()
     technical_limit: TechnicalLimit | None = None
+    check_name: str | None = None
+    check_ordinal: int = Field(default=0, ge=0)
+    related_anchors: tuple[StreamRange, ...] = Field(default=(), max_length=16)
 
 
 class Coverage(Record):
@@ -155,6 +163,7 @@ class Coverage(Record):
     ambiguous_source_bytes: int
     unreconstructed_directions: int = 0
     excluded_unreconstructed_directions: int = 0
+    corpus_check_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class ValidationRun(Record):
@@ -189,6 +198,9 @@ class ValidationSummary(Record):
     unknown_range_count: int
     values_sha256: str
     technical_limit: TechnicalLimit | None = None
+    check_name: str | None = None
+    check_ordinal: int = 0
+    related_anchors: tuple[StreamRange, ...] = ()
 
 
 class Currentness(Record):

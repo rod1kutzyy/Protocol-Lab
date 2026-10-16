@@ -27,7 +27,7 @@ def atomic_output(path, writer, mode="w"):
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=".protocol-lab-", dir=path.parent)
     try:
-        with os.fdopen(fd, mode) as output:
+        with os.fdopen(fd, mode, **({"encoding": "utf-8"} if "b" not in mode else {})) as output:
             result = writer(output)
             output.flush()
             os.fsync(output.fileno())
@@ -47,9 +47,12 @@ def main(argv=None):
     apply.add_argument("--capture", type=Path, required=True)
     apply.add_argument("--output", type=Path, required=True)
     apply.add_argument("--checksum-policy", choices=["warn", "ignore", "reject"], default="warn")
+    apply.add_argument("--action-log", type=Path, action="append", default=[])
+    apply.add_argument("--log-mapping", type=Path)
+    apply.add_argument("--clock-offset-ns", type=int, default=0)
     for name in ("infer", "evaluate-candidate"):
         command = commands.add_parser(
-            name, help="Offline automatic analysis with the shared A1 engine"
+            name, help="Offline automatic analysis with the shared A4 engine"
         )
         command.add_argument("--capture", type=Path, action="append", required=True)
         command.add_argument("--output", type=Path, required=True)
@@ -91,10 +94,10 @@ def main(argv=None):
                 args.output,
                 lambda output: infer_files(
                     args.capture,
-                    args.spec.read_text() if args.spec else None,
+                    args.spec.read_text(encoding="utf-8") if args.spec else None,
                     output,
                     args.holdout,
-                    args.candidate.read_text() if args.command == "evaluate-candidate" else None,
+                    args.candidate.read_text(encoding="utf-8") if args.command == "evaluate-candidate" else None,
                     IndexSettings(
                         max_packets=settings.max_packets, max_block_bytes=settings.max_block_bytes
                     ),
@@ -105,13 +108,54 @@ def main(argv=None):
         if args.command == "apply":
             if args.model.stat().st_size > 1024 * 1024:
                 raise ValueError("Model exceeds 1 MiB")
-            model = load_model(args.model.read_text())
+            model = load_model(args.model.read_text(encoding="utf-8"))
             settings = Settings.environment()
             if args.capture.stat().st_size > settings.max_upload_bytes:
                 raise ValueError("Capture exceeds configured input limit")
-            counts = atomic_output(
-                args.output,
-                lambda output: apply_capture(
+            from uuid import NAMESPACE_URL, uuid5
+
+            from protocol_lab.capture.index import sha256_file
+            from protocol_lab.research.action_logs import MAX_LOG_BYTES, LogMapping, parse_events
+
+            events, logs = [], []
+            if bool(args.action_log) != bool(args.log_mapping):
+                raise ValueError("--action-log requires --log-mapping and vice versa")
+            if args.log_mapping and args.log_mapping.stat().st_size > 65536:
+                raise ValueError("Log mapping exceeds 64 KiB")
+            mapping = (
+                LogMapping.model_validate_json(args.log_mapping.read_text(encoding="utf-8"))
+                if args.log_mapping
+                else None
+            )
+            for log_path in args.action_log:
+                if log_path.stat().st_size > MAX_LOG_BYTES:
+                    raise ValueError("Action log exceeds 16 MiB")
+                checksum = sha256_file(log_path)
+                log_id = uuid5(NAMESPACE_URL, f"protocol-lab:log:{checksum}")
+                parsed, summary = parse_events(
+                    log_id, log_path.read_bytes(), log_path.suffix.lstrip("."), mapping
+                )
+                if summary["rejected_rows"]:
+                    raise ValueError("Action log contains invalid rows; correct its mapping")
+                events.extend(
+                    event.model_copy(
+                        update={"timestamp_ns": str(int(event.timestamp_ns) + args.clock_offset_ns)}
+                    )
+                    for event in parsed
+                )
+                logs.append(
+                    dict(
+                        id=str(log_id),
+                        sha256=checksum,
+                        relative_path=log_path.name,
+                        mapping=mapping.model_dump(),
+                        clock_offset_ns=str(args.clock_offset_ns),
+                        clock_revision=1,
+                    )
+                )
+
+            def apply_with_logs(output):
+                result = apply_capture(
                     model,
                     args.capture,
                     output,
@@ -121,7 +165,19 @@ def main(argv=None):
                         max_block_bytes=settings.max_block_bytes,
                     ),
                     limits=settings.validation_limits,
-                ),
+                    action_events=tuple(events),
+                    action_logs=tuple(logs),
+                )
+                if any(
+                    sha256_file(path) != log["sha256"]
+                    for path, log in zip(args.action_log, logs, strict=True)
+                ):
+                    raise ValueError("Action log changed during validation")
+                return result
+
+            counts = atomic_output(
+                args.output,
+                apply_with_logs,
             )
             print(json.dumps({"output": str(args.output), "message_counts": counts.message_counts}))
             # A completed validation with counterexamples is still a successful command.

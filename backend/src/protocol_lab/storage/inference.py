@@ -19,6 +19,7 @@ from protocol_lab.inference.models import (
     CandidateInput,
     EngineVersions,
     FramingInput,
+    FrozenEventInput,
     InferenceCandidate,
     InferenceRun,
     InferenceSnapshot,
@@ -34,6 +35,8 @@ from protocol_lab.inference.results import (
 )
 from protocol_lab.interpretation.engine import VERSION as INTERPRETATION_VERSION
 from protocol_lab.storage.database import (
+    ActionLogRow,
+    ActionRow,
     CorpusRow,
     InferenceCandidateRow,
     InferenceEvaluationRow,
@@ -69,8 +72,6 @@ class InferenceStore:
         corpus = self.validation.corpus(spec.corpus_version_id)
         if corpus.project_id != project_id:
             raise ValueError("Inference corpus belongs to another project")
-        if spec.logs or spec.parameters:
-            raise ValueError("Logs/parameters require A2; they cannot be silently ignored in A1")
         if parent_id and self.get(parent_id).snapshot.project_id != project_id:
             raise ValueError("Parent inference run belongs to another project")
         interpretation = None
@@ -89,6 +90,46 @@ class InferenceStore:
             db.begin(),
         ):
             sources = self.validation.sources(db, project_id, corpus)
+            frozen_events = []
+            for log_input in spec.logs:
+                log = db.get(ActionLogRow, log_input.log_id)
+                if log is None or log.project_id != project_id:
+                    raise ValueError("Action log is outside this project")
+                if log.sha256 != log_input.sha256 or log.clock_revision != log_input.clock_revision:
+                    raise ValueError("Action log or clock revision changed; reload the inputs")
+                if int(log.clock_offset_ns) != int(log_input.clock_offset_ns):
+                    raise ValueError("Action log clock offset does not match the frozen input")
+                from protocol_lab.research.action_logs import LogMapping
+
+                stored_mapping = LogMapping.model_validate(log.metadata_json["mapping"])
+                if (
+                    stored_mapping.timestamp_field != log_input.timestamp_field
+                    or stored_mapping.label_field != log_input.label_field
+                    or stored_mapping.parameters_field != log_input.parameters_field
+                    or stored_mapping.timestamp_format != log_input.timestamp_format
+                    or log.metadata_json["format"] != log_input.format
+                    or stored_mapping.delimiter != log_input.delimiter
+                ):
+                    raise ValueError("Action-log parser settings do not match the stored import")
+                event_rows = db.scalars(
+                    select(ActionRow.metadata_json)
+                    .where(ActionRow.log_id == log.id)
+                    .order_by(ActionRow.timestamp_ns, ActionRow.id)
+                    .limit(spec.budget.max_event_windows + 1)
+                )
+                for event_json in event_rows:
+                    if len(frozen_events) >= spec.budget.max_event_windows:
+                        raise ValueError("max_event_windows exceeded; narrow the selected logs")
+                    event = FrozenEventInput(
+                        id=event_json["id"],
+                        log_id=log.id,
+                        timestamp_ns=str(
+                            int(event_json["timestamp_ns"]) + int(log.clock_offset_ns)
+                        ),
+                        label=event_json["label"],
+                        parameters_json=event_json["parameters_json"],
+                    )
+                    frozen_events.append(event)
         selected_streams = {s.id for c in sources for s in c.streams if s.included}
         framings = []
         for id in spec.framing_version_ids:
@@ -117,6 +158,7 @@ class InferenceStore:
             interpretation=interpretation,
             framing=tuple(framings),
             candidates=tuple(candidates),
+            events=tuple(frozen_events),
             engines=versions(),
         )
         self.verify_inputs(snapshot)
@@ -144,6 +186,23 @@ class InferenceStore:
                 or model.document_json != snapshot.interpretation.document_json
             ):
                 raise StorageError("Frozen interpretation changed")
+        if snapshot.spec.logs:
+            with Session(self.engine) as db:
+                for log_input in snapshot.spec.logs:
+                    log = db.get(ActionLogRow, log_input.log_id)
+                    if (
+                        log is None
+                        or log.project_id != snapshot.project_id
+                        or log.sha256 != log_input.sha256
+                        or log.clock_revision != log_input.clock_revision
+                        or int(log.clock_offset_ns) != int(log_input.clock_offset_ns)
+                    ):
+                        raise StorageError("Frozen action log or clock settings changed")
+                    path = self.projects.safe_path(
+                        snapshot.project_id, log.metadata_json["relative_path"]
+                    )
+                    if sha256_file(path) != log.sha256:
+                        raise StorageError("Frozen action-log source checksum mismatch")
         for value in snapshot.framing:
             if self.framing.get(value.id).spec != value.spec:
                 raise StorageError("Frozen framing changed")
@@ -203,6 +262,27 @@ class InferenceStore:
 
                     inputs.append(
                         StreamData(capture, stream, stream_input(actual, spans, file), provenance)
+                    )
+                    packet_ids = sorted(
+                        {source.packet_id for span in spans for source in span.sources}, key=str
+                    )
+                    packet_times = {}
+                    if packet_ids:
+                        with Session(self.engine) as db:
+                            for start in range(0, len(packet_ids), 1000):
+                                for packet_id, metadata in db.execute(
+                                    select(PacketRow.id, PacketRow.metadata_json).where(
+                                        PacketRow.id.in_(packet_ids[start : start + 1000])
+                                    )
+                                ):
+                                    value = metadata.get("timestamp_ns")
+                                    if value is not None:
+                                        packet_times[packet_id] = int(value)
+                    inputs[-1].packet_times = tuple(
+                        (span.byte_range.start, span.byte_range.end, packet_times[source.packet_id])
+                        for span in spans
+                        for source in span.sources
+                        if source.packet_id in packet_times
                     )
                     if spans and spans[0].sources:
                         first = spans[0].sources[0]

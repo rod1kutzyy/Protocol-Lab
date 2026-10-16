@@ -214,6 +214,12 @@ class InferenceSpec(Record):
     parameters: tuple[ParameterInput, ...] = Field(default=(), max_length=128)
     event_before_ns: Count = 0
     event_after_ns: Count = 1000000000
+    timestamp_units: tuple[Literal["s", "ms", "us", "ns"], ...] = Field(
+        default=("s", "ms", "us", "ns"), min_length=1, max_length=4
+    )
+    timestamp_epochs: tuple[Literal["unix", "session_relative"], ...] = Field(
+        default=("unix", "session_relative"), min_length=1, max_length=2
+    )
     checksum_algorithms: tuple[Checksum, ...] = (
         "xor8",
         "sum8",
@@ -241,6 +247,13 @@ class InferenceSpec(Record):
             raise ValueError("Parameter refers to a log outside the snapshot inputs")
         if len(set(self.checksum_algorithms)) != len(self.checksum_algorithms):
             raise ValueError("Duplicate checksum algorithm")
+        if len(set(self.timestamp_units)) != len(self.timestamp_units) or not self.timestamp_units:
+            raise ValueError("Timestamp units must be nonempty and unique")
+        if (
+            len(set(self.timestamp_epochs)) != len(self.timestamp_epochs)
+            or not self.timestamp_epochs
+        ):
+            raise ValueError("Timestamp epochs must be nonempty and unique")
         return self
 
 
@@ -282,7 +295,6 @@ class RegionRule(Record):
         "fixed_width_region",
         "session_stable_region",
         "session_token_candidate",
-        "copied_value",
         "field_boundary_candidate",
     ]
     relative_to: Literal["message_start", "message_end"] = "message_start"
@@ -290,6 +302,7 @@ class RegionRule(Record):
     length: Positive
     value_hex: Hex | None = None
     relation_scope: Literal["message_group", "direction", "session"] = "message_group"
+    framing: FramingSpec | None = None
 
     @model_validator(mode="after")
     def constant(self):
@@ -332,14 +345,28 @@ class CounterRule(Record):
     increment: Positive = 1
     scope: Literal["direction", "message_group", "session"] = "direction"
     wrap: bool = Field(default=True, strict=True)
+    framing: FramingSpec | None = None
+
+
+class CopyRelationRule(Record):
+    kind: Literal["copied_value"]
+    source_offset: Count
+    target_offset: Count
+    length: Positive
+    source_direction: Literal["a_to_b", "b_to_a"]
+    framing: FramingSpec
 
 
 class ChecksumRule(Record):
     kind: Literal["checksum_relation"]
     field: IntegerLocation
     algorithm: Checksum
-    covered_ranges: tuple[ByteRange, ...] = Field(min_length=1, max_length=16)
+    covered_ranges: tuple[ByteRange, ...] = Field(default=(), max_length=16)
     exclude_field: bool = Field(default=True, strict=True)
+    field_relative_to: Literal["message_start", "message_end"] = "message_start"
+    coverage: Literal["message", "before_field", "ranges"] = "ranges"
+    coverage_start: Count = 0
+    framing: FramingSpec | None = None
 
     @model_validator(mode="after")
     def parameters(self):
@@ -353,6 +380,10 @@ class ChecksumRule(Record):
         )
         if self.field.width != expected or self.field.signed:
             raise ValueError("Checksum field must match the registered algorithm width")
+        if (self.coverage == "ranges") != bool(self.covered_ranges):
+            raise ValueError("Explicit checksum ranges required only for ranges coverage")
+        if self.coverage == "ranges" and self.coverage_start:
+            raise ValueError("coverage_start is only supported for dynamic coverage")
         previous = 0
         for interval in self.covered_ranges:
             if interval.start < previous:
@@ -369,6 +400,7 @@ class TimestampRule(Record):
     clock_offset_ns: DecimalInteger = "0"
     tolerance_ns: Count
     drift_ppm: int = Field(default=0, strict=True, ge=-1000000, le=1000000)
+    framing: FramingSpec | None = None
 
     @model_validator(mode="after")
     def width(self):
@@ -417,6 +449,7 @@ CandidateRule = Annotated[
     | DelimiterRule
     | GroupRule
     | CounterRule
+    | CopyRelationRule
     | ChecksumRule
     | TimestampRule
     | ProfileRule
@@ -493,7 +526,7 @@ class InferenceCandidate(Record):
     assumptions: tuple[Text, ...] = Field(default=(), max_length=128)
     limitations: tuple[Text, ...] = Field(default=(), max_length=128)
     alternatives: IDs = ()
-    compiler_support: Literal["interpretation-1", "not_compilable"]
+    compiler_support: Literal["interpretation-1", "interpretation-2", "not_compilable"]
     compiler_reason: Text | None = None
 
     @model_validator(mode="after")
@@ -504,6 +537,7 @@ class InferenceCandidate(Record):
             DelimiterRule: {"structure"},
             GroupRule: {"groups"},
             CounterRule: {"counters"},
+            CopyRelationRule: {"tokens"},
             ChecksumRule: {"checksums"},
             TimestampRule: {"timestamps"},
             ProfileRule: {"entropy"},
@@ -513,8 +547,7 @@ class InferenceCandidate(Record):
         if isinstance(self.rule, RegionRule):
             family = (
                 {"tokens"}
-                if self.rule.kind
-                in {"session_stable_region", "session_token_candidate", "copied_value"}
+                if self.rule.kind in {"session_stable_region", "session_token_candidate"}
                 else {"structure", "entropy"}
                 if self.rule.kind == "field_boundary_candidate"
                 else {"structure", "framing"}
@@ -543,6 +576,11 @@ class InferenceCandidate(Record):
             "opcode_candidate",
         }:
             raise ValueError("Rule cannot be executed by interpretation-1")
+        if self.compiler_support == "interpretation-2" and (
+            not isinstance(self.rule, (CounterRule, TimestampRule, ChecksumRule))
+            or self.rule.framing is None
+        ):
+            raise ValueError("Rule cannot be executed by interpretation-2")
         unique_ids(self.dependency_ids)
         unique_ids(self.alternatives)
         return self
@@ -610,6 +648,16 @@ class CandidateInput(VersionRef):
         return self
 
 
+class FrozenEventInput(Record):
+    """Action-log row with the clock correction frozen at discovery time."""
+
+    id: UUID
+    log_id: UUID
+    timestamp_ns: DecimalInteger
+    label: Annotated[str, Field(min_length=1, max_length=500)]
+    parameters_json: Annotated[str, Field(max_length=10000)]
+
+
 class EngineVersions(Record):
     contracts: Literal["inference-contracts-1"] = CONTRACT_VERSION
     inference: Text
@@ -628,6 +676,7 @@ class InferenceSnapshot(Record):
     interpretation: InterpretationInput | None = None
     framing: tuple[FramingInput, ...] = Field(default=(), max_length=10000)
     candidates: tuple[CandidateInput, ...] = Field(default=(), max_length=10000)
+    events: tuple[FrozenEventInput, ...] = Field(default=(), max_length=100000)
     sample_anchors: tuple[StreamRange, ...] = Field(default=(), max_length=100000)
     engines: EngineVersions
 
@@ -658,6 +707,17 @@ class InferenceSnapshot(Record):
             raise ValueError("Framing versions are not frozen")
         if set(self.spec.candidate_ids) != set(unique_ids([c.id for c in self.candidates])):
             raise ValueError("Evaluation candidate rules are not frozen")
+        log_ids = {log.log_id for log in self.spec.logs}
+        if any(event.log_id not in log_ids for event in self.events):
+            raise ValueError("Frozen action event refers to an undeclared log")
+        if len({event.id for event in self.events}) != len(self.events):
+            raise ValueError("Duplicate frozen action event")
+        event_logs = {event.id: event.log_id for event in self.events}
+        for parameter in self.spec.parameters:
+            if parameter.log_id is not None and any(
+                event_logs.get(event_id) != parameter.log_id for event_id in parameter.event_ids
+            ):
+                raise ValueError("Parameter refers to an event outside its frozen action log")
         from protocol_lab.inference.sampling import validate_split
 
         validate_split(self.spec, self.sources)
@@ -723,7 +783,12 @@ class DetectorOutcome(Record):
     searched_units: Count
     unsearched_units: Count
     diagnostic: Text
-    searched_unit: Literal["rule_trial", "sample_message"] = "rule_trial"
+    searched_unit: Literal[
+        "rule_trial",
+        "sample_message",
+        "event_message_window",
+        "mapping_trial",
+    ] = "rule_trial"
     unsearched_unit: Literal["residual_search_space"] = "residual_search_space"
 
 
@@ -827,7 +892,12 @@ class TransformMapping(Record):
 
 
 def canonical(record):
-    return json.dumps(record.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    data = record.model_dump(mode="json")
+    if isinstance(record, ChecksumRule):
+        for key in ("field_relative_to", "coverage", "coverage_start", "framing"):
+            if getattr(record, key) == ChecksumRule.model_fields[key].default:
+                data.pop(key)
+    return json.dumps(data, sort_keys=True, separators=(",", ":"))
 
 
 def content_hash(record):

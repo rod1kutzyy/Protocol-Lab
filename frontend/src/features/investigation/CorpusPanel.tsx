@@ -26,13 +26,15 @@ export function CorpusPanel({ projectId, navigate }: { projectId: string; naviga
   const [runId, setRunId] = useState<string | null>(null), [jobId, setJobId] = useState<string | null>(null), [filter, setFilter] = useState('')
   const [detail, setDetail] = useState<{ run: string; result: string } | null>(null), [otherId, setOtherId] = useState<string | null>(null), [compareOffset, setCompareOffset] = useState(0)
   const captures = usePages<Capture>(['captures', projectId], `/projects/${projectId}/captures`)
+  const logs = usePages<components['schemas']['StoredLog']>(['action-logs', projectId], `/projects/${projectId}/action-logs`)
+  const [logId, setLogId] = useState('')
   const corpora = usePages<Corpus>(['corpora', projectId], `/projects/${projectId}/corpora`)
   const versions = usePages<Version>(['interpretations', projectId], `/projects/${projectId}/interpretations`)
   const selectedCorpus = useQuery({ queryKey: ['corpus', corpusId], queryFn: () => request<Corpus>(`/corpus-versions/${corpusId}`), enabled: !!corpusId })
   const save = useMutation({ mutationFn: () => request<Corpus>(`/projects/${projectId}/corpora`, json({ name: draft.name.trim(), spec: corpusSpec(draft), parent_id: corpusId })), onSuccess: c => { setCorpusId(c.id); setDraft(draftFromCorpus(c)); client.setQueryData(['corpus', c.id], c); void client.invalidateQueries({ queryKey: ['corpora', projectId] }); void client.invalidateQueries({ queryKey: ['validation-currentness'] }) } })
   const job = useJob(jobId, j => { if (j.status === 'succeeded' && typeof j.result?.run_id === 'string') { setRunId(j.result.run_id); setDetail(null); setCompareOffset(0) } })
   const busy = !!jobId && (!job.data || !terminal(job.data.status))
-  const validate = useMutation({ mutationFn: () => request<Job>(`/projects/${projectId}/validation-runs`, json({ corpus_version_id: corpusId, interpretation_version_id: versionId })), onSuccess: j => { setJobId(j.id); useSelection.getState().selectJob(j.id) } })
+  const validate = useMutation({ mutationFn: () => request<Job>(`/projects/${projectId}/validation-runs`, json({ corpus_version_id: corpusId, interpretation_version_id: versionId, log_ids: logId ? [logId] : [] })), onSuccess: j => { setJobId(j.id); useSelection.getState().selectJob(j.id) } })
   const runs = usePages<RunSummary>(['validation-runs', projectId], `/projects/${projectId}/validation-runs`)
   const selectedRun = useQuery({ queryKey: ['validation-run', runId], queryFn: () => request<Run>(`/validation-runs/${runId}`), enabled: !!runId })
   const currentness = useQuery({ queryKey: ['validation-currentness', runId], queryFn: () => request<components['schemas']['Currentness']>(`/validation-runs/${runId}/currentness`), enabled: !!runId })
@@ -53,6 +55,8 @@ export function CorpusPanel({ projectId, navigate }: { projectId: string; naviga
   const frozenDetails = useMemo(() => meta ? JSON.stringify({ corpus: meta.snapshot.corpus, framing: meta.snapshot.framing, sources: meta.snapshot.sources }, null, 2) : '', [meta])
   const selectRun = (id: string) => { setRunId(id || null); setDetail(null); setCompareOffset(0) }
   return <section className="panel stack" aria-label="Проверка корпуса"><h3>Корпус и выполнение правил</h3>
+    <label>Журнал для межсообщенческих проверок<select value={logId} onChange={e => setLogId(e.target.value)}><option value="">Без журнала</option>{logs.data?.pages.flatMap(p => p.items).map(log => <option key={log.id} value={log.id}>{log.event_count} событий · {log.id.slice(0, 8)}</option>)}</select></label><More query={logs} />
+    {coverage?.corpus_check_counts && <p className="notice">Межсообщенческие проверки: выполнено {coverage.corpus_check_counts.passed ?? 0}, противоречий {coverage.corpus_check_counts.failed ?? 0}, неизвестно {coverage.corpus_check_counts.unknown ?? 0}, неоднозначно {coverage.corpus_check_counts.ambiguous ?? 0}. Факты разбора сообщений сохранены отдельно.</p>}
     <p className="muted text-xs">Выберите записи и явные условия. Весь состав фиксируется перед запуском; данные без сообщений, пропуски, исключённые направления и записи без TCP остаются в сводке.</p>
     <div className="form-row"><label>Сохранённый корпус<select value={corpusId ?? ''} disabled={save.isPending} onChange={e => { const corpus = corpusOptions.find(c => c.id === e.target.value); setCorpusId(corpus?.id ?? null); setDraft(corpus ? draftFromCorpus(corpus) : emptyCorpus) }}><option value="">Новый корпус</option>{corpusOptions.map(c => <option key={c.id} value={c.id}>{c.name} · {c.id.slice(0, 8)}</option>)}</select></label><More query={corpora} /></div>
     <form onSubmit={e => { e.preventDefault(); save.mutate() }}><fieldset disabled={save.isPending} className="stack">

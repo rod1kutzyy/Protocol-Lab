@@ -316,7 +316,7 @@ def snapshot(
         progress(0, row_total, "Reading consistent PostgreSQL snapshot (rows)")
         metadata = destination / "metadata.jsonl"
         rows = 0
-        with metadata.open("x") as output:
+        with metadata.open("x", encoding="utf-8") as output:
             for name, table in TABLES.items():
                 counts[name] = 0
                 query = select(table).where(scoped(table, project_id)).order_by(table.c.id)
@@ -377,7 +377,7 @@ def snapshot(
             ):
                 raise StorageError("Snapshot exceeds file/expanded-size limits")
         bundle = Bundle(project_id=project_id, members=members, table_counts=counts)
-        (destination / "bundle.json").write_text(bundle.model_dump_json(indent=2) + "\n")
+        (destination / "bundle.json").write_text(bundle.model_dump_json(indent=2) + "\n", encoding="utf-8")
     check_cancel(cancelled)
     return bundle
 
@@ -452,7 +452,7 @@ def verify_bundle(directory, cancelled=lambda: False):
         manifest_path = directory / "bundle.json"
         if manifest_path.is_symlink() or manifest_path.stat().st_size > 8 * 1024 * 1024:
             raise StorageError("Bundle manifest exceeds limit or is a symlink")
-        bundle = Bundle.model_validate_json(manifest_path.read_text())
+        bundle = Bundle.model_validate_json(manifest_path.read_text(encoding="utf-8"))
         expected_names = {"bundle.json", *bundle.members}
         actual = set()
         for path in directory.rglob("*"):
@@ -470,7 +470,7 @@ def verify_bundle(directory, cancelled=lambda: False):
                 raise StorageError(f"Bundle symlink: {name}")
             if path.stat().st_size != member.size_bytes or sha256_file(path) != member.sha256:
                 raise StorageError(f"Bundle checksum mismatch: {name}")
-        project = ProjectManifest.model_validate_json((directory / "manifest.json").read_text())
+        project = ProjectManifest.model_validate_json((directory / "manifest.json").read_text(encoding="utf-8"))
         if (
             project.project_id != bundle.project_id
             or project.format != "protocol-lab-project"
@@ -488,7 +488,7 @@ def verify_bundle(directory, cancelled=lambda: False):
 
 
 def rows(directory):
-    with (directory / "metadata.jsonl").open() as file:
+    with (directory / "metadata.jsonl").open(encoding="utf-8") as file:
         while line := file.readline(MAX_LINE_BYTES + 1):
             if len(line.encode()) > MAX_LINE_BYTES:
                 raise StorageError("Snapshot row exceeds 32 MiB")

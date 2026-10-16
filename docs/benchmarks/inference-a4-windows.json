@@ -1,0 +1,72 @@
+{
+  "profile": "Native bounded A4 file adapter; not the Linux control workload",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "machine": "AMD64",
+  "python": "3.12.13",
+  "messages": 1000,
+  "packets": 52,
+  "stream_bytes": 68304,
+  "capture_bytes": 71968,
+  "phase_seconds": {
+    "discovery_with_index_and_tcp_seconds": 1.987429,
+    "fixed_evaluation_with_index_and_tcp_seconds": 0.17463,
+    "compiled_model_with_index_and_tcp_seconds": 0.195389
+  },
+  "process_cumulative_peak_rss_bytes": 150941696,
+  "memory_scope": "One process across all three phases; excludes DB/browser and concurrency",
+  "spec": {
+    "corpus_version_id": "5bbfe5c0-7f71-5d10-a179-91195866c28f",
+    "detectors": [
+      {
+        "family": "framing"
+      },
+      {
+        "family": "checksums"
+      }
+    ],
+    "split": {
+      "discovery_ids": [
+        "66ccc26a-b58e-54b6-a503-58b29b9ee0ff"
+      ],
+      "holdout_unavailable_reason": "Measurement only"
+    },
+    "budget": {
+      "max_header_bytes": 8,
+      "max_rule_trials": 5000,
+      "max_checksum_operations": 1000000
+    },
+    "search": {
+      "fixed_size_max": 256,
+      "adjustment_min": -8,
+      "adjustment_max": 8,
+      "marker_max_bytes": 4,
+      "max_marker_patterns": 8
+    }
+  },
+  "rule_trials": 4138,
+  "search_complete": false,
+  "candidate_count": 12,
+  "correct_crc_in_first_five": true,
+  "fixed_evaluation_metrics": {
+    "unit": "message",
+    "eligible": 1000,
+    "matched": 1000,
+    "contradicted": 0,
+    "unknown": 0,
+    "ambiguous": 0,
+    "not_applicable": 0,
+    "captures": 1,
+    "sessions": 1,
+    "unique_messages": 1000,
+    "distinct_values": 0,
+    "distinct_lengths": 0
+  },
+  "compiled_model_counts": {
+    "passed": 1000,
+    "failed": 0,
+    "unknown": 0,
+    "ambiguous": 0,
+    "not_applicable": 0
+  },
+  "output_bytes": 6773970
+}

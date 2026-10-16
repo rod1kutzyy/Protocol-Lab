@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from uuid import uuid4
@@ -32,7 +33,7 @@ def main():
             )
             urls.append(url.render_as_string(hide_password=False))
             subprocess.run(
-                [str(ROOT / "backend/.venv/bin/alembic"), "upgrade", "head"],
+                [sys.executable, "-m", "alembic", "upgrade", "head"],
                 cwd=ROOT / "backend",
                 env={**os.environ, "PROTOCOL_LAB_DATABASE_URL": urls[-1]},
                 check=True,
@@ -46,7 +47,8 @@ def main():
                 "PROTOCOL_LAB_E2E_RESTORE_ROOT": str(Path(temporary) / "destination"),
             }
             return subprocess.run(
-                ["npm", "run", "test:e2e"], cwd=ROOT / "frontend", env=env, check=False
+                ["npm.cmd" if os.name == "nt" else "npm", "run", "test:e2e"],
+                cwd=ROOT / "frontend", env=env, check=False
             ).returncode
     finally:
         for schema in schemas:

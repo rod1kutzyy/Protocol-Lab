@@ -109,11 +109,11 @@
           "type": "string"
         },
         "covered_ranges": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/ByteRange"
           },
           "maxItems": 16,
-          "minItems": 1,
           "title": "Covered Ranges",
           "type": "array"
         },
@@ -121,15 +121,93 @@
           "default": true,
           "title": "Exclude Field",
           "type": "boolean"
+        },
+        "field_relative_to": {
+          "default": "message_start",
+          "enum": [
+            "message_start",
+            "message_end"
+          ],
+          "title": "Field Relative To",
+          "type": "string"
+        },
+        "coverage": {
+          "default": "ranges",
+          "enum": [
+            "message",
+            "before_field",
+            "ranges"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
         "kind",
         "field",
-        "algorithm",
-        "covered_ranges"
+        "algorithm"
       ],
       "title": "ChecksumRule",
+      "type": "object"
+    },
+    "CopyRelationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "copied_value",
+          "title": "Kind",
+          "type": "string"
+        },
+        "source_offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Source Offset",
+          "type": "integer"
+        },
+        "target_offset": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Target Offset",
+          "type": "integer"
+        },
+        "length": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Length",
+          "type": "integer"
+        },
+        "source_direction": {
+          "enum": [
+            "a_to_b",
+            "b_to_a"
+          ],
+          "title": "Source Direction",
+          "type": "string"
+        },
+        "framing": {
+          "$ref": "#/$defs/FramingSpec"
+        }
+      },
+      "required": [
+        "kind",
+        "source_offset",
+        "target_offset",
+        "length",
+        "source_direction",
+        "framing"
+      ],
+      "title": "CopyRelationRule",
       "type": "object"
     },
     "CounterRule": {
@@ -177,6 +255,17 @@
           "default": true,
           "title": "Wrap",
           "type": "boolean"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -872,7 +961,6 @@
             "fixed_width_region",
             "session_stable_region",
             "session_token_candidate",
-            "copied_value",
             "field_boundary_candidate"
           ],
           "title": "Kind",
@@ -922,6 +1010,17 @@
           ],
           "title": "Relation Scope",
           "type": "string"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -984,6 +1083,17 @@
           "minimum": -1000000,
           "title": "Drift Ppm",
           "type": "integer"
+        },
+        "framing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FramingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1049,7 +1159,7 @@
           "byte_profile": "#/$defs/ProfileRule",
           "checksum_relation": "#/$defs/ChecksumRule",
           "constant_region": "#/$defs/RegionRule",
-          "copied_value": "#/$defs/RegionRule",
+          "copied_value": "#/$defs/CopyRelationRule",
           "counter": "#/$defs/CounterRule",
           "end_marker": "#/$defs/RegionRule",
           "entropy_region": "#/$defs/ProfileRule",
@@ -1091,6 +1201,9 @@
         },
         {
           "$ref": "#/$defs/CounterRule"
+        },
+        {
+          "$ref": "#/$defs/CopyRelationRule"
         },
         {
           "$ref": "#/$defs/ChecksumRule"
@@ -1175,6 +1288,7 @@
     "compiler_support": {
       "enum": [
         "interpretation-1",
+        "interpretation-2",
         "not_compilable"
       ],
       "title": "Compiler Support",

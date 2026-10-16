@@ -60,11 +60,11 @@ class DetectorCapability(Record):
 
 
 class InferenceCapabilities(Record):
-    stage: Literal["A1"] = "A1"
+    stage: Literal["A4"] = "A4"
     contract_version: str = CONTRACT_VERSION
     analysis_available: Literal[True] = True
     scope_verification_available: Literal[True] = True
-    budget_profile: str = "bounded_a1"
+    budget_profile: str = "bounded_a4"
     detectors: tuple[DetectorCapability, ...]
     default_budget: SearchBudget = Field(default_factory=SearchBudget)
     default_search: SearchSpace = Field(default_factory=SearchSpace)
@@ -105,6 +105,19 @@ async def capabilities():
 @router.get("/inference/schemas/{name}")
 async def schema(name: SchemaName) -> dict:
     return json_schema(name)
+
+
+@router.get("/inference/checksum-registry")
+async def checksum_registry() -> dict:
+    from dataclasses import asdict
+
+    from protocol_lab.interpretation.checksums import REGISTRY, VERSION
+
+    return {
+        "version": VERSION,
+        "check_vector_hex": b"123456789".hex(),
+        "algorithms": {name: asdict(spec) for name, spec in REGISTRY.items()},
+    }
 
 
 @router.post("/inference/spec/check", response_model=SpecCheck)
@@ -254,9 +267,13 @@ async def evaluate_candidate(id: UUID, body: EvaluationRequest, request: Request
     snapshot, candidate = await call(repository.freeze_evaluation, id, body.corpus_version_id)
     from protocol_lab.inference.models import FramingCandidateRule
 
-    if not isinstance(candidate.rule, FramingCandidateRule):
+    if (
+        not isinstance(candidate.rule, FramingCandidateRule)
+        and getattr(candidate.rule, "framing", None) is None
+    ):
         raise HTTPException(
-            422, "A1 evaluates framing candidates; dependent analytical regions require A2"
+            422,
+            "This rule has no frozen framing dependency for typed corpus evaluation",
         )
     return start_job(
         request,

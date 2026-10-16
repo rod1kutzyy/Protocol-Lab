@@ -12,13 +12,14 @@ from protocol_lab.interpretation.schema import ProtocolModel, canonical, json_sc
 
 
 def document(fields, **kwargs):
-    return dict(
+    value = dict(
         schema_version="interpretation-1",
         name="Test",
         framing=dict(rule=dict(kind="fixed", size=5)),
         fields=fields,
-        **kwargs,
     )
+    value.update(kwargs)
+    return value
 
 
 def integer(name, width=1, signed=False, endian="big", **kwargs):
@@ -60,6 +61,39 @@ def test_integer_types(width, signed, value, endian):
     assert result.status == "passed"
     assert result.fields[0].value == str(value)
     assert result.fields[0].anchor.byte_range == ByteRange(start=0, end=width)
+
+
+def test_interpretation_2_delimited_bytes_requires_and_tracks_terminator():
+    field = dict(
+        kind="delimited_bytes",
+        name="payload",
+        terminator_hex="0d0a",
+        max_length=16,
+    )
+    doc = document([field], schema_version="interpretation-2")
+    result = parse(doc, b"abc\r\n")
+    assert result.status == "passed"
+    assert (result.fields[0].kind, result.fields[0].value, result.fields[0].length) == (
+        "delimited_bytes",
+        b"abc".hex(),
+        5,
+    )
+    included = parse(
+        document([{**field, "include_terminator": True}], schema_version="interpretation-2"),
+        b"abc\r\n",
+    )
+    assert included.fields[0].value == b"abc\r\n".hex()
+    missing = parse(doc, b"abc")
+    assert missing.status == "failed"
+    assert missing.diagnostic == "field_exceeds_message"
+    bounded = parse(
+        document([{**field, "max_length": 3}], schema_version="interpretation-2"),
+        b"abcdef",
+    )
+    assert bounded.status == "unknown"
+    assert bounded.diagnostic == "max_delimited_length_exceeded"
+    with pytest.raises(ValidationError, match="interpretation-2"):
+        parse(document([field]), b"abc\r\n")
 
 
 def test_large_integer_is_exact_decimal_string():
@@ -242,7 +276,7 @@ def test_schema_and_canonical_are_deterministic():
     model = ProtocolModel.model_validate(document([integer("x")]))
     assert ProtocolModel.model_validate_json(canonical(model)) == model
     schema = json_schema()
-    assert schema["$id"] == "urn:protocol-lab:interpretation-1"
+    assert schema["$id"] == "urn:protocol-lab:interpretation-2"
     assert schema["additionalProperties"] is False
 
 

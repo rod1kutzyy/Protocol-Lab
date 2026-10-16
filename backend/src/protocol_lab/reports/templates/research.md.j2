@@ -174,7 +174,7 @@ protocol-lab apply --model model.json --capture new.pcap --output validation.jso
 CLI использует общие движки восстановления, framing и Construct.
 Для восстановления архива требуется локальный PostgreSQL с миграциями 0007 и установленное приложение.
 
-## Автоматические кандидаты (A1)
+## Автоматические кандидаты (A0–A4)
 
 Автоматическое предложение не подтверждает смысл поля. Discovery и проверка
 зафиксированного правила сохранены отдельно; технический лимит не отвергает протокол.
@@ -188,6 +188,15 @@ Semantic SHA-256: {{ run.semantic_sha256 | md }}.
 ```json
 {{ run.coverage | pretty }}
 ```
+
+Входы и версии:
+```json
+{{ {"spec": run.snapshot.spec, "engines": run.snapshot.engines, "sources": run.snapshot.sources} | pretty }}
+```
+Исследованное пространство:
+```json
+{{ run.outcomes | pretty }}
+```
 {% for candidate in inference_candidates if candidate.run_id == run.id %}
 #### {{ candidate.rule.kind | md }} — {{ candidate.id | md }}
 
@@ -196,6 +205,17 @@ Semantic SHA-256: {{ run.semantic_sha256 | md }}.
 ```json
 {{ candidate.rule | pretty }}
 ```
+Метрики и область:
+```json
+{{ {"scope": candidate.scope, "metrics": candidate.metrics, "limitations": candidate.limitations, "alternatives": candidate.alternatives} | pretty }}
+```
+{% for fact in inference_examples if fact.candidate_id == candidate.id %}
+- {{ fact.status | md }} ({{ fact.evaluation_id | md }}): {{ fact.diagnostic | md }}
+  {% if fact.anchor %}Stream {{ fact.anchor.stream_id }}, bytes [{{ fact.anchor.byte_range.start }}, {{ fact.anchor.byte_range.end }}), reconstruction {{ fact.anchor.reconstruction_version | md }}.{% endif %}
+{% for source in fact.sources %}
+  Packet {{ source.packet_id }}, capture {{ source.capture_id }}, payload [{{ source.packet_payload_range.start }}, {{ source.packet_payload_range.end }}).
+{% endfor %}
+{% endfor %}
 {% for evaluation in inference_evaluations if evaluation.evaluation.candidate_id == candidate.id %}
 Проверка {{ evaluation.evaluation.id | md }}: {{ evaluation.evaluation.independence | md }}.
 {{ evaluation.evaluation.independence_reason | md }}

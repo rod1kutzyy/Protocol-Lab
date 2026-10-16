@@ -390,14 +390,21 @@ def test_base64_provenance_supports_different_lengths_without_fake_source_range(
         TransformMapping(**{**result.model_dump(), "decoded_length": 4})
 
 
-def test_schema_and_spec_api_work_without_db_and_advertise_a1_capabilities(tmp_path):
+def test_schema_and_spec_api_work_without_db_and_advertise_a4_capabilities(tmp_path):
     with TestClient(create_app(Settings(database_url=None, project_root=tmp_path))) as client:
         capability = client.get("/api/v1/inference/capabilities").json()
-        assert capability["stage"] == "A1" and capability["analysis_available"] is True
+        assert capability["stage"] == "A4" and capability["analysis_available"] is True
         assert {item["family"] for item in capability["detectors"] if item["available"]} == {
             "framing",
             "structure",
             "entropy",
+            "groups",
+            "events",
+            "data_mapping",
+            "counters",
+            "tokens",
+            "timestamps",
+            "checksums",
         }
         for name in SCHEMAS:
             response = client.get(f"/api/v1/inference/schemas/{name}")
