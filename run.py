@@ -32,6 +32,7 @@ def run(command, cwd=ROOT):
 
 def ensure_docker(docker):
     """Start Docker Desktop on Windows and wait for the Docker engine."""
+
     def engine_ready():
         try:
             subprocess.run(
@@ -187,7 +188,7 @@ def main():
             / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
         )
         vite = ROOT / "frontend/node_modules/vite/bin/vite.js"
-        check_port(8000)
+        check_port(8080)
         check_port(5173)
         if args.setup:
             uv = executable("uv")
